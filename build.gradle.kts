@@ -6,8 +6,8 @@ plugins {
 }
 
 group = "com.gnomeshift"
-version = "1.0.0"
-description = "TiSk"
+version = "1.1.0"
+description = "TiSk-backend"
 
 java {
 	toolchain {
