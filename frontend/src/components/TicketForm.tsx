@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
-import {CreateTicketDto, TicketStatus, UpdateTicketDto} from '../types/ticket';
+import {CreateTicketDto, TicketPriority, TicketStatus, UpdateTicketDto} from '../types/ticket';
 import {ticketService} from '../services/ticketService';
 
 const TicketForm: React.FC = () => {
@@ -11,7 +11,8 @@ const TicketForm: React.FC = () => {
     const [formData, setFormData] = useState({
         title: '',
         description: '',
-        status: TicketStatus.OPEN || TicketStatus.IN_PROGRESS || TicketStatus.CLOSED
+        status: TicketStatus.OPEN || TicketStatus.IN_PROGRESS || TicketStatus.CLOSED,
+        priority: TicketPriority.LOW || TicketPriority.MEDIUM || TicketPriority.HIGH || TicketPriority.VERY_HIGH
     });
 
     const [loading, setLoading] = useState(false);
@@ -30,7 +31,8 @@ const TicketForm: React.FC = () => {
             setFormData({
                 title: ticket.title,
                 description: ticket.description,
-                status: ticket.status
+                status: ticket.status,
+                priority: ticket.priority
             });
         }
         catch (err) {
@@ -50,14 +52,16 @@ const TicketForm: React.FC = () => {
                 const updateData: UpdateTicketDto = {
                     title: formData.title,
                     description: formData.description,
-                    status: formData.status
+                    status: formData.status,
+                    priority: formData.priority
                 };
                 await ticketService.update(id, updateData);
             }
             else {
                 const createData: CreateTicketDto = {
                     title: formData.title,
-                    description: formData.description
+                    description: formData.description,
+                    priority: formData.priority
                 };
                 await ticketService.create(createData);
             }
@@ -115,6 +119,22 @@ const TicketForm: React.FC = () => {
                 </div>
 
                 <div className="form-row">
+                    <div className="form-group">
+                        <label htmlFor="priority">Приоритет</label>
+                        <select
+                            id="priority"
+                            name="priority"
+                            value={formData.priority}
+                            onChange={handleChange}
+                            className="form-control"
+                        >
+                            <option value={TicketPriority.LOW}>Низкий</option>
+                            <option value={TicketPriority.MEDIUM}>Средний</option>
+                            <option value={TicketPriority.HIGH}>Высокий</option>
+                            <option value={TicketPriority.VERY_HIGH}>Очень высокий</option>
+                        </select>
+                    </div>
+
                     {isEdit && (
                         <div className="form-group">
                             <label htmlFor="status">Статус</label>

@@ -32,6 +32,7 @@ public class TicketService {
         ticket.setTitle(createTicketDTO.getTitle());
         ticket.setDescription(createTicketDTO.getDescription());
         ticket.setStatus(createTicketDTO.getStatus());
+        ticket.setPriority(createTicketDTO.getPriority());
         return TicketDTO.fromEntity(ticketRepository.save(ticket));
     }
 
@@ -42,6 +43,7 @@ public class TicketService {
         ticket.setTitle(ticketDTO.getTitle());
         ticket.setDescription(ticketDTO.getDescription());
         ticket.setStatus(ticketDTO.getStatus());
+        ticket.setPriority(ticketDTO.getPriority());
         return TicketDTO.fromEntity(ticketRepository.save(ticket));
     }
 

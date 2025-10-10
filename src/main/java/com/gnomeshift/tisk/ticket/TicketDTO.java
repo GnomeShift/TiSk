@@ -15,6 +15,7 @@ public class TicketDTO {
     private String title;
     private String description;
     private TicketStatus status;
+    private TicketPriority priority;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -24,6 +25,7 @@ public class TicketDTO {
         ticketDTO.setTitle(ticket.getTitle());
         ticketDTO.setDescription(ticket.getDescription());
         ticketDTO.setStatus(ticket.getStatus());
+        ticketDTO.setPriority(ticket.getPriority());
         ticketDTO.setCreatedAt(ticket.getCreatedAt());
         ticketDTO.setUpdatedAt(ticket.getUpdatedAt());
         return ticketDTO;

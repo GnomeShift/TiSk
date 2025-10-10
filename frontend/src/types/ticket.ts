@@ -3,6 +3,7 @@ export interface Ticket {
     title: string;
     description: string;
     status: TicketStatus;
+    priority: TicketPriority;
     created_at: string;
     updated_at: string;
 }
@@ -13,13 +14,22 @@ export enum TicketStatus {
     CLOSED = 'CLOSED'
 }
 
+export enum TicketPriority {
+    LOW = 'LOW',
+    MEDIUM = 'MEDIUM',
+    HIGH = 'HIGH',
+    VERY_HIGH = 'VERY_HIGH'
+}
+
 export interface CreateTicketDto {
     title: string;
     description: string;
+    priority: TicketPriority;
 }
 
 export interface UpdateTicketDto {
     title?: string;
     description?: string;
     status: TicketStatus;
+    priority: TicketPriority;
 }

@@ -45,6 +45,15 @@ const TicketList: React.FC = () => {
         }
     };
 
+    const getPriorityColor = (priority: string) => {
+        switch (priority) {
+            case 'high': return 'priority-high';
+            case 'medium': return 'priority-medium';
+            case 'low': return 'priority-low';
+            default: return '';
+        }
+    };
+
     if (loading) return <div className="loading">Загрузка...</div>;
     if (error) return <div className="error">{error}</div>;
 
@@ -66,6 +75,9 @@ const TicketList: React.FC = () => {
                                 <h3 className="ticket-title">
                                     <Link to={`/ticket/${ticket.id}`}>{ticket.title}</Link>
                                 </h3>
+                                <span className={`priority ${getPriorityColor(ticket.priority)}`}>
+                  {ticket.priority}
+                </span>
                             </div>
                             <p className="ticket-description">{ticket.description}</p>
                             <div className="ticket-meta">

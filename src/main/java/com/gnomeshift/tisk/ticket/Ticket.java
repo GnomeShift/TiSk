@@ -34,6 +34,10 @@ public class Ticket {
     private TicketStatus status;
 
     @NotNull
+    @Enumerated(EnumType.STRING)
+    private TicketPriority priority;
+
+    @NotNull
     private LocalDateTime createdAt;
 
     @NotNull

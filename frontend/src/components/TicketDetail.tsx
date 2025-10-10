@@ -101,6 +101,11 @@ const TicketDetail: React.FC = () => {
                                 </select>
                             </dd>
 
+                            <dt>Приоритет:</dt>
+                            <dd className={`priority priority-${ticket.priority}`}>
+                                {ticket.priority}
+                            </dd>
+
                             <dt>Создан:</dt>
                             <dd>{new Date(ticket.created_at).toLocaleString()}</dd>
 
