@@ -36,24 +36,6 @@ const TicketList: React.FC = () => {
         }
     };
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'open': return 'status-open';
-            case 'in_progress': return 'status-progress';
-            case 'closed': return 'status-closed';
-            default: return '';
-        }
-    };
-
-    const getPriorityColor = (priority: string) => {
-        switch (priority) {
-            case 'high': return 'priority-high';
-            case 'medium': return 'priority-medium';
-            case 'low': return 'priority-low';
-            default: return '';
-        }
-    };
-
     if (loading) return <div className="loading">Загрузка...</div>;
     if (error) return <div className="error">{error}</div>;
 
