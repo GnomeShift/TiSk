@@ -1,6 +1,7 @@
 package com.gnomeshift.tisk.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.gnomeshift.tisk.ticket.Ticket;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -15,6 +16,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -59,6 +61,14 @@ public class User implements UserDetails {
     private String phoneNumber;
     private String department;
     private String position;
+
+    @OneToMany(mappedBy = "assignee", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<Ticket> assignedTickets = new ArrayList<>();
+
+    @OneToMany(mappedBy = "reporter", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<Ticket> reportedTickets = new ArrayList<>();
 
     @NotNull
     private LocalDateTime createdAt;

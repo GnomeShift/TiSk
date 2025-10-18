@@ -1,9 +1,12 @@
 package com.gnomeshift.tisk.user;
 
+import com.gnomeshift.tisk.ticket.Ticket;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -36,6 +39,9 @@ public class CreateUserDTO {
 
     private String department;
     private String position;
+
+    private List<Ticket> assignedTickets;
+    private List<Ticket> reportedTickets;
 
     @NotNull(message = "Role required")
     private UserRole role = UserRole.USER;

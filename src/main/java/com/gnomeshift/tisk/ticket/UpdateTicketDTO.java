@@ -14,19 +14,19 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateTicketDTO {
-    @NotBlank(message = "Title can't be empty")
-    @Size(max = 255, message = "Title length can't exceed 255 characters")
+public class UpdateTicketDTO {
+    @NotBlank(message = "Title required")
+    @Size(min = 1, max = 255, message = "Title must be between 1 and 255 characters")
     private String title;
 
     @Size(min = 1, max = 5000, message = "Description can't exceed 5000 characters")
     private String description;
 
-    @NotNull(message = "Status can't be null")
+    @NotNull(message = "Status required")
     @Enumerated(EnumType.STRING)
-    private TicketStatus status = TicketStatus.OPEN;
+    private TicketStatus status;
 
-    @NotNull(message = "Priority can't be null")
+    @NotNull(message = "Priority required")
     @Enumerated(EnumType.STRING)
     private TicketPriority priority;
 
