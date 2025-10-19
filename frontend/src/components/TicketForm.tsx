@@ -1,11 +1,13 @@
 import React, {useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
-import {CreateTicketDto, TicketPriority, TicketStatus, UpdateTicketDto} from '../types/ticket';
+import {CreateTicketDTO, TicketPriority, TicketStatus, UpdateTicketDTO} from '../types/ticket';
 import {ticketService} from '../services/ticketService';
+import {useAuth} from "../contexts/AuthContext.tsx";
 
 const TicketForm: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams();
+    const { user } = useAuth()
     const isEdit = !!id;
 
     const [formData, setFormData] = useState({
@@ -49,7 +51,7 @@ const TicketForm: React.FC = () => {
         try {
             setLoading(true);
             if (isEdit && id) {
-                const updateData: UpdateTicketDto = {
+                const updateData: UpdateTicketDTO = {
                     title: formData.title,
                     description: formData.description,
                     status: formData.status,
@@ -58,10 +60,11 @@ const TicketForm: React.FC = () => {
                 await ticketService.update(id, updateData);
             }
             else {
-                const createData: CreateTicketDto = {
+                const createData: CreateTicketDTO = {
                     title: formData.title,
                     description: formData.description,
-                    priority: formData.priority
+                    priority: formData.priority,
+                    reporterId: user!.id
                 };
                 await ticketService.create(createData);
             }
@@ -102,6 +105,7 @@ const TicketForm: React.FC = () => {
                         onChange={handleChange}
                         required
                         className="form-control"
+                        maxLength={255}
                     />
                 </div>
 
@@ -115,7 +119,11 @@ const TicketForm: React.FC = () => {
                         required
                         rows={5}
                         className="form-control"
+                        maxLength={5000}
                     />
+                    <small className="form-hint">
+                        Максимум 5000 символов
+                    </small>
                 </div>
 
                 <div className="form-row">
@@ -152,6 +160,12 @@ const TicketForm: React.FC = () => {
                         </div>
                     )}
                 </div>
+
+                {!isEdit && user && (
+                    <div className="form-info">
+                        <p>Тикет будет создан от имени: <strong>{user.firstName} {user.lastName}</strong></p>
+                    </div>
+                )}
 
                 <div className="form-actions">
                     <button type="submit" className="btn btn-primary" disabled={loading}>

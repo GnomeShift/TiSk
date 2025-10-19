@@ -1,21 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import {Ticket} from '../types/ticket';
+import {TicketDTO, TicketStatus} from '../types/ticket';
 import { ticketService } from '../services/ticketService';
 import {getPriorityColor, getStatusColor} from "../services/utils.ts";
+import { useAuth } from '../contexts/AuthContext';
+import { userService } from '../services/userService';
+import { UserDTO } from '../types/user';
 
 const TicketDetail: React.FC = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [ticket, setTicket] = useState<Ticket | null>(null);
+    const { user } = useAuth();
+    const [ticket, setTicket] = useState<TicketDTO | null>(null);
+    const [users, setUsers] = useState<UserDTO[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [assigneeId, setAssigneeId] = useState<string>('');
 
     useEffect(() => {
         if (id) {
             loadTicket(id);
+            if (user?.role === 'ADMIN' || user?.role === 'SUPPORT') {
+                loadUsers();
+            }
         }
-    }, [id]);
+    }, [id, user]);
 
     const loadTicket = async (ticketId: string) => {
         try {
@@ -23,12 +32,52 @@ const TicketDetail: React.FC = () => {
             const data = await ticketService.getById(ticketId);
             setTicket(data);
             console.log(data)
+            setAssigneeId(data.assignee?.id || '');
         }
         catch (err) {
             setError('Ошибка загрузки тикета');
         }
         finally {
             setLoading(false);
+        }
+    };
+
+    const loadUsers = async () => {
+        try {
+            const data = await userService.getAll();
+            setUsers(data.filter(u => u.role === 'SUPPORT' || u.role === 'ADMIN'));
+        } catch (err) {
+            console.error('Ошибка загрузки пользователей:', err);
+        }
+    };
+
+    const handleStatusChange = async (newStatus: TicketStatus) => {
+        if (!ticket) return;
+
+        try {
+            const updateData = {
+                title: ticket.title,
+                description: ticket.description,
+                status: newStatus,
+                priority: ticket.priority,
+                reporterId: ticket.reporter?.id
+            };
+            const updated = await ticketService.update(ticket.id, updateData);
+            setTicket(updated);
+        } catch (err) {
+            alert('Ошибка при обновлении статуса');
+        }
+    };
+
+    const handleAssign = async () => {
+        if (!ticket || !assigneeId) return;
+
+        try {
+            const updated = await ticketService.assignTicket(ticket.id, assigneeId);
+            setTicket(updated);
+            alert('Тикет успешно назначен');
+        } catch (err) {
+            alert('Ошибка при назначении тикета');
         }
     };
 
@@ -46,21 +95,38 @@ const TicketDetail: React.FC = () => {
         }
     };
 
-    if (loading) return <div className="loading"/>;
+    const canEdit = () => {
+        if (!ticket || !user) return false;
+        return user.role === 'ADMIN' || user.role === 'SUPPORT' || ticket.reporter?.id === user.id;
+    };
+
+    const canDelete = () => {
+        return user?.role === 'ADMIN';
+    };
+
+    const canAssign = () => {
+        return user?.role === 'ADMIN' || user?.role === 'SUPPORT';
+    };
+
+    if (loading) return <div className="loading"></div>;
     if (error) return <div className="error">{error}</div>;
     if (!ticket) return <div className="error">Тикет не найден</div>;
 
     return (
         <div className="ticket-detail">
             <div className="detail-header">
-                <h2>Тикет #{ticket.id}</h2>
+                <h2>Тикет #{ticket.id.substring(0, 8)}</h2>
                 <div className="detail-actions">
-                    <Link to={`/edit/${ticket.id}`} className="btn btn-primary">
-                        Редактировать
-                    </Link>
-                    <button onClick={handleDelete} className="btn btn-danger">
-                        Удалить
-                    </button>
+                    {canEdit() && (
+                        <Link to={`/edit/${ticket.id}`} className="btn btn-primary">
+                            Редактировать
+                        </Link>
+                    )}
+                    {canDelete() && (
+                        <button onClick={handleDelete} className="btn btn-danger">
+                            Удалить
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -78,13 +144,53 @@ const TicketDetail: React.FC = () => {
                         <h4>Информация</h4>
                         <dl>
                             <dt>Статус:</dt>
-                            <dd className={`status ${getStatusColor(ticket.status)}`}>
-                                {ticket.status}
+                            <dd>
+                                {canEdit() ? (
+                                    <select
+                                        value={ticket.status}
+                                        onChange={(e) => handleStatusChange(e.target.value as TicketStatus)}
+                                        className="status-select"
+                                    >
+                                        <option value={TicketStatus.OPEN}>Открыт</option>
+                                        <option value={TicketStatus.IN_PROGRESS}>В работе</option>
+                                        <option value={TicketStatus.CLOSED}>Закрыт</option>
+                                    </select>
+                                ) : (
+                                    <span className={`status ${getStatusColor(ticket.status)}`}>
+                                        {ticket.status}
+                                    </span>
+                                )}
                             </dd>
 
                             <dt>Приоритет:</dt>
                             <dd className={`priority ${getPriorityColor(ticket.priority)}`}>
                                 {ticket.priority}
+                            </dd>
+
+                            <dt>Автор:</dt>
+                            <dd>
+                                {ticket.reporter ? (
+                                    <>
+                                        {ticket.reporter.firstName} {ticket.reporter.lastName}
+                                        <br />
+                                        <small>{ticket.reporter.email}</small>
+                                    </>
+                                ) : (
+                                    '—'
+                                )}
+                            </dd>
+
+                            <dt>Назначен:</dt>
+                            <dd>
+                                {ticket.assignee ? (
+                                    <>
+                                        {ticket.assignee.firstName} {ticket.assignee.lastName}
+                                        <br />
+                                        <small>{ticket.assignee.email}</small>
+                                    </>
+                                ) : (
+                                    '—'
+                                )}
                             </dd>
 
                             <dt>Создан:</dt>
@@ -93,6 +199,33 @@ const TicketDetail: React.FC = () => {
                             <dt>Обновлен:</dt>
                             <dd>{new Date(ticket.updatedAt).toLocaleString()}</dd>
                         </dl>
+
+                        {canAssign() && (
+                            <div className="assign-section">
+                                <h4>Назначить тикет</h4>
+                                <div className="assign-form">
+                                    <select
+                                        value={assigneeId}
+                                        onChange={(e) => setAssigneeId(e.target.value)}
+                                        className="form-control"
+                                    >
+                                        <option value="">Выберите исполнителя</option>
+                                        {users.map(u => (
+                                            <option key={u.id} value={u.id}>
+                                                {u.firstName} {u.lastName} ({u.role})
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        onClick={handleAssign}
+                                        className="btn btn-primary"
+                                        disabled={!assigneeId}
+                                    >
+                                        Назначить
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
