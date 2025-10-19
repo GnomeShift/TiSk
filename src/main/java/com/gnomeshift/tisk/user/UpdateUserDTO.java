@@ -1,14 +1,11 @@
 package com.gnomeshift.tisk.user;
 
-import com.gnomeshift.tisk.ticket.Ticket;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -32,9 +29,6 @@ public class UpdateUserDTO {
 
     private String department;
     private String position;
-
-    private List<Ticket> assignedTickets;
-    private List<Ticket> reportedTickets;
 
     private UserRole role;
     private UserStatus status;

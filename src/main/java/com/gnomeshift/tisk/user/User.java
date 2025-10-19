@@ -40,6 +40,7 @@ public class User implements UserDetails {
     private String email;
 
     @NotBlank
+    @JsonIgnore
     private String password;
 
     @Size(min = 2, max = 100)
