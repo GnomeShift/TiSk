@@ -1,20 +1,59 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import TicketList from './components/TicketList';
 import TicketForm from './components/TicketForm';
 import TicketDetail from './components/TicketDetail';
+import MyTickets from './components/MyTickets';
+import Login from './components/Login';
+import Register from './components/Register';
+import Profile from './components/Profile';
+import PrivateRoute from './components/PrivateRoute';
 
 function App() {
     return (
         <BrowserRouter>
-            <Routes>
-                <Route path="/" element={<Layout />}>
-                    <Route index element={<TicketList />} />
-                    <Route path="create" element={<TicketForm />} />
-                    <Route path="edit/:id" element={<TicketForm />} />
-                    <Route path="ticket/:id" element={<TicketDetail />} />
-                </Route>
-            </Routes>
+            <AuthProvider>
+                <Routes>
+                    <Route path="/" element={<Layout />}>
+                        <Route path="login" element={<Login />} />
+                        <Route path="register" element={<Register />} />
+
+                        <Route index element={
+                            <PrivateRoute>
+                                <TicketList />
+                            </PrivateRoute>
+                        } />
+                        <Route path="my-tickets" element={
+                            <PrivateRoute>
+                                <MyTickets />
+                            </PrivateRoute>
+                        } />
+                        <Route path="create" element={
+                            <PrivateRoute>
+                                <TicketForm />
+                            </PrivateRoute>
+                        } />
+                        <Route path="edit/:id" element={
+                            <PrivateRoute>
+                                <TicketForm />
+                            </PrivateRoute>
+                        } />
+                        <Route path="ticket/:id" element={
+                            <PrivateRoute>
+                                <TicketDetail />
+                            </PrivateRoute>
+                        } />
+                        <Route path="profile" element={
+                            <PrivateRoute>
+                                <Profile />
+                            </PrivateRoute>
+                        } />
+                    </Route>
+
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </AuthProvider>
         </BrowserRouter>
     );
 }

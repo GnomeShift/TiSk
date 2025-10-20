@@ -1,7 +1,16 @@
 import React from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const Layout: React.FC = () => {
+    const { user, isAuthenticated, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
+
     return (
         <div className="app">
             <header className="header">
@@ -10,10 +19,34 @@ const Layout: React.FC = () => {
                         <Link to="/">{import.meta.env.VITE_APP_TITLE}</Link>
                     </h1>
                     <nav className="nav">
-                        <Link to="/" className="nav-link">Все тикеты</Link>
-                        <Link to="/create" className="nav-link nav-link-primary">
-                            Создать тикет
-                        </Link>
+                        {isAuthenticated ? (
+                            <>
+                                <Link to="/" className="nav-link">Все тикеты</Link>
+                                <Link to="/my-tickets" className="nav-link">Мои тикеты</Link>
+                                <Link to="/create" className="nav-link nav-link-primary">
+                                    Создать тикет
+                                </Link>
+
+                                <div className="nav-user">
+                                    <span className="user-login">{user?.login}</span>
+                                    <div className="user-menu">
+                                        <Link to="/profile" className="user-menu-item">
+                                            Профиль
+                                        </Link>
+                                        <button onClick={handleLogout} className="user-menu-item">
+                                            Выйти
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <Link to="/login" className="nav-link">Войти</Link>
+                                <Link to="/register" className="nav-link nav-link-primary">
+                                    Регистрация
+                                </Link>
+                            </>
+                        )}
                     </nav>
                 </div>
             </header>

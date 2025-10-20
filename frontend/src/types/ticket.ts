@@ -1,9 +1,13 @@
-export interface Ticket {
+import { UserDTO } from './user';
+
+export interface TicketDTO {
     id: string;
     title: string;
     description: string;
     status: TicketStatus;
     priority: TicketPriority;
+    reporter?: UserDTO;
+    assignee?: UserDTO;
     createdAt: string;
     updatedAt: string;
 }
@@ -21,15 +25,17 @@ export enum TicketPriority {
     VERY_HIGH = 'VERY_HIGH'
 }
 
-export interface CreateTicketDto {
+export interface CreateTicketDTO {
     title: string;
     description: string;
     priority: TicketPriority;
+    reporterId: string;
 }
 
-export interface UpdateTicketDto {
-    title?: string;
-    description?: string;
+export interface UpdateTicketDTO {
+    title: string;
+    description: string;
     status: TicketStatus;
     priority: TicketPriority;
+    reporterId?: string;
 }

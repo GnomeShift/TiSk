@@ -4,7 +4,7 @@ export interface PaginationParams {
     search?: string;
     status?: string;
     priority?: string;
-    sortBy?: 'created_at' | 'updated_at' | 'priority';
+    sortBy?: 'createdAt' | 'updatedAt' | 'priority';
     sortOrder?: 'asc' | 'desc';
 }
 

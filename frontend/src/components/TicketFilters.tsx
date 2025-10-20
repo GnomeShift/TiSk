@@ -84,7 +84,7 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
                         onChange={(e) => onSortByChange(e.target.value)}
                         className="filter-select"
                     >
-                        <option value="created_at">Дате создания</option>
+                        <option value="createdAt">Дате создания</option>
                         <option value="updatedAt">Дате обновления</option>
                         <option value="priority">Приоритету</option>
                     </select>

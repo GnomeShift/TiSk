@@ -1,13 +1,13 @@
-import { CreateTicketDto, Ticket, UpdateTicketDto } from '../types/ticket.ts';
+import { CreateTicketDTO, TicketDTO, UpdateTicketDTO } from '../types/ticket.ts';
 import api from './api.ts';
 import {PaginatedResponse, PaginationParams} from '../types/pagination.ts';
 
 export const ticketService = {
-    getAll: async (params?: PaginationParams): Promise<PaginatedResponse<Ticket>> => {
+    getAll: async (params?: PaginationParams): Promise<PaginatedResponse<TicketDTO>> => {
         const response = await api.get('/tickets', { params });
 
         if (Array.isArray(response.data)) {
-            const data = response.data as Ticket[];
+            const data = response.data as TicketDTO[];
             const page = params?.page || 1;
             const limit = params?.limit || 10;
             const start = (page - 1) * limit;
@@ -34,8 +34,8 @@ export const ticketService = {
 
             if (params?.sortBy) {
                 filteredData.sort((a, b) => {
-                    let aVal: any = a[params.sortBy as keyof Ticket];
-                    let bVal: any = b[params.sortBy as keyof Ticket];
+                    let aVal: any = a[params.sortBy as keyof TicketDTO];
+                    let bVal: any = b[params.sortBy as keyof TicketDTO];
 
                     if (params.sortBy === 'priority') {
                         const priorityOrder = { 'VERY_HIGH': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
@@ -64,18 +64,30 @@ export const ticketService = {
         return response.data;
     },
 
-    getById: async (id: string): Promise<Ticket> => {
+    getMyTickets: async (): Promise<TicketDTO[]> => {
+        const response = await api.get('/tickets/my');
+        return response.data;
+    },
+
+    getById: async (id: string): Promise<TicketDTO> => {
         const response = await api.get(`/tickets/${id}`);
         return response.data;
     },
 
-    create: async (ticket: CreateTicketDto): Promise<Ticket> => {
+    create: async (ticket: CreateTicketDTO): Promise<TicketDTO> => {
         const response = await api.post('/tickets', ticket);
         return response.data;
     },
 
-    update: async (id: string, ticket: UpdateTicketDto): Promise<Ticket> => {
+    update: async (id: string, ticket: UpdateTicketDTO): Promise<TicketDTO> => {
         const response = await api.patch(`/tickets/${id}`, ticket);
+        return response.data;
+    },
+
+    assignTicket: async (id: string, assigneeId: string): Promise<TicketDTO> => {
+        const response = await api.patch(`/tickets/${id}/assign`, null, {
+            params: { assigneeId }
+        });
         return response.data;
     },
 
