@@ -348,135 +348,153 @@ const UserManagement: React.FC = () => {
                 </div>
             )}
 
-            <div className="users-table">
-                <table>
-                    <thead>
-                    <tr>
-                        <th>Имя</th>
-                        <th>Email</th>
-                        <th>Логин</th>
-                        <th>Роль</th>
-                        <th>Статус</th>
-                        <th>Отдел</th>
-                        <th>Регистрация</th>
-                        <th>Действия</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {paginatedUsers.map(user => (
-                        <tr key={user.id}>
-                            <td>
-                                {editingUser?.id === user.id ? (
-                                    <div className="inline-edit">
-                                        <input
-                                            type="text"
-                                            value={editingUser.firstName}
+            <div className="table-wrapper">
+                <div className="users-table">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th className="th-name">Имя</th>
+                            <th className="th-email">Email</th>
+                            <th className="th-login">Логин</th>
+                            <th className="th-role">Роль</th>
+                            <th className="th-status">Статус</th>
+                            <th className="th-department">Отдел</th>
+                            <th className="th-date">Регистрация</th>
+                            <th className="th-actions">Действия</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {paginatedUsers.map(user => (
+                            <tr key={user.id}>
+                                <td className="td-name">
+                                    {editingUser?.id === user.id ? (
+                                        <div className="inline-edit">
+                                            <input
+                                                type="text"
+                                                value={editingUser.firstName}
+                                                onChange={(e) => setEditingUser({
+                                                    ...editingUser,
+                                                    firstName: e.target.value
+                                                })}
+                                                className="form-control-sm"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={editingUser.lastName}
+                                                onChange={(e) => setEditingUser({
+                                                    ...editingUser,
+                                                    lastName: e.target.value
+                                                })}
+                                                className="form-control-sm"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <span className="cell-text" title={`${user.firstName} ${user.lastName}`}>
+                                                {user.firstName} {user.lastName}
+                                            </span>
+                                    )}
+                                </td>
+                                <td className="td-email">
+                                        <span className="cell-text" title={user.email}>
+                                            {user.email}
+                                        </span>
+                                </td>
+                                <td className="td-login">
+                                        <span className="cell-text" title={user.login}>
+                                            {user.login}
+                                        </span>
+                                </td>
+                                <td className="td-role">
+                                    {editingUser?.id === user.id ? (
+                                        <select
+                                            value={editingUser.role}
                                             onChange={(e) => setEditingUser({
                                                 ...editingUser,
-                                                firstName: e.target.value
+                                                role: e.target.value as UserRole
                                             })}
                                             className="form-control-sm"
-                                        />
-                                        <input
-                                            type="text"
-                                            value={editingUser.lastName}
-                                            onChange={(e) => setEditingUser({
-                                                ...editingUser,
-                                                lastName: e.target.value
-                                            })}
-                                            className="form-control-sm"
-                                        />
-                                    </div>
-                                ) : (
-                                    `${user.firstName} ${user.lastName}`
-                                )}
-                            </td>
-                            <td>{user.email}</td>
-                            <td>{user.login || '—'}</td>
-                            <td>
-                                {editingUser?.id === user.id ? (
+                                            disabled={user.id === currentUser?.id}
+                                        >
+                                            <option value={UserRole.USER}>Пользователь</option>
+                                            <option value={UserRole.SUPPORT}>Поддержка</option>
+                                            <option value={UserRole.ADMIN}>Администратор</option>
+                                        </select>
+                                    ) : (
+                                        <span className={`role-badge role-${user.role.toLowerCase()}`}>
+                                                {getRoleLabel(user.role)}
+                                            </span>
+                                    )}
+                                </td>
+                                <td className="td-status">
                                     <select
-                                        value={editingUser.role}
-                                        onChange={(e) => setEditingUser({
-                                            ...editingUser,
-                                            role: e.target.value as UserRole
-                                        })}
-                                        className="form-control-sm"
+                                        value={user.status}
+                                        onChange={(e) => handleChangeStatus(user.id, e.target.value as UserStatus)}
+                                        className="status-select-sm"
                                         disabled={user.id === currentUser?.id}
                                     >
-                                        <option value={UserRole.USER}>Пользователь</option>
-                                        <option value={UserRole.SUPPORT}>Поддержка</option>
-                                        <option value={UserRole.ADMIN}>Администратор</option>
+                                        <option value={UserStatus.ACTIVE}>Активен</option>
+                                        <option value={UserStatus.INACTIVE}>Неактивен</option>
+                                        <option value={UserStatus.SUSPENDED}>Заблокирован</option>
                                     </select>
-                                ) : (
-                                    <span className={`role-badge role-${user.role.toLowerCase()}`}>
-                                            {getRoleLabel(user.role)}
+                                </td>
+                                <td className="td-department">
+                                        <span className="cell-text" title={user.department || ''}>
+                                            {user.department || '—'}
                                         </span>
-                                )}
-                            </td>
-                            <td>
-                                <select
-                                    value={user.status}
-                                    onChange={(e) => handleChangeStatus(user.id, e.target.value as UserStatus)}
-                                    className="status-select-sm"
-                                    disabled={user.id === currentUser?.id}
-                                >
-                                    <option value={UserStatus.ACTIVE}>Активен</option>
-                                    <option value={UserStatus.INACTIVE}>Неактивен</option>
-                                    <option value={UserStatus.SUSPENDED}>Заблокирован</option>
-                                </select>
-                            </td>
-                            <td>{user.department || '—'}</td>
-                            <td>{new Date(user.createdAt).toLocaleDateString()}</td>
-                            <td>
-                                <div className="table-actions">
-                                    {editingUser?.id === user.id ? (
-                                        <>
-                                            <button
-                                                onClick={() => handleUpdateUser(user.id, {
-                                                    firstName: editingUser.firstName,
-                                                    lastName: editingUser.lastName,
-                                                    role: editingUser.role
-                                                })}
-                                                className="btn-icon btn-success"
-                                                title="Сохранить"
-                                            >
-                                                ✓
-                                            </button>
-                                            <button
-                                                onClick={() => setEditingUser(null)}
-                                                className="btn-icon btn-secondary"
-                                                title="Отмена"
-                                            >
-                                                ✕
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <button
-                                                onClick={() => setEditingUser(user)}
-                                                className="btn-icon btn-primary"
-                                                title="Редактировать"
-                                                disabled={user.id === currentUser?.id}
-                                            >
-                                                ✎
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteUser(user.id)}
-                                                className="btn-icon btn-danger"
-                                                title="Удалить"
-                                                disabled={user.id === currentUser?.id}
-                                            >
-                                                🗑
-                                            </button>
-                                        </>
-                                    )}
-                                </div>
-                            </td>
-                        </tr>
-                    ))}
-                    </tbody>
-                </table>
+                                </td>
+                                <td className="td-date">
+                                    {new Date(user.createdAt).toLocaleDateString()}
+                                </td>
+                                <td className="td-actions">
+                                    <div className="table-actions">
+                                        {editingUser?.id === user.id ? (
+                                            <>
+                                                <button
+                                                    onClick={() => handleUpdateUser(user.id, {
+                                                        firstName: editingUser.firstName,
+                                                        lastName: editingUser.lastName,
+                                                        role: editingUser.role
+                                                    })}
+                                                    className="btn-icon btn-success"
+                                                    title="Сохранить"
+                                                >
+                                                    ✓
+                                                </button>
+                                                <button
+                                                    onClick={() => setEditingUser(null)}
+                                                    className="btn-icon btn-secondary"
+                                                    title="Отмена"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    onClick={() => setEditingUser(user)}
+                                                    className="btn-icon btn-primary"
+                                                    title="Редактировать"
+                                                    disabled={user.id === currentUser?.id}
+                                                >
+                                                    ✎
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteUser(user.id)}
+                                                    className="btn-icon btn-danger"
+                                                    title="Удалить"
+                                                    disabled={user.id === currentUser?.id}
+                                                >
+                                                    🗑
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {totalPages > 1 && (
