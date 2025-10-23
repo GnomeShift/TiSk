@@ -1,3 +1,5 @@
+import { UserRole } from '../types/user';
+
 export const getStatusColor = (status: string) => {
     switch (status) {
         case 'OPEN': return 'status-open';
@@ -14,5 +16,14 @@ export const getPriorityColor = (priority: string) => {
         case 'MEDIUM': return 'priority-medium';
         case 'LOW': return 'priority-low';
         default: return '';
+    }
+};
+
+export const getRoleLabel = (role: UserRole): string => {
+    switch (role) {
+        case UserRole.ADMIN: return 'Администратор';
+        case UserRole.SUPPORT: return 'Поддержка';
+        case UserRole.USER: return 'Пользователь';
+        default: return role;
     }
 };

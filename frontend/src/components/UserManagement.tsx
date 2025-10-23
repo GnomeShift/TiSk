@@ -3,6 +3,7 @@ import { UserDTO, UserRole, UserStatus, CreateUserDTO, UpdateUserDTO } from '../
 import { userService } from '../services/userService';
 import { useAuth } from '../contexts/AuthContext';
 import Pagination from './Pagination';
+import { getRoleLabel } from '../services/utils'
 
 const UserManagement: React.FC = () => {
     const { user: currentUser } = useAuth();
@@ -508,15 +509,6 @@ const UserManagement: React.FC = () => {
             )}
         </div>
     );
-};
-
-const getRoleLabel = (role: UserRole): string => {
-    switch (role) {
-        case UserRole.ADMIN: return 'Администратор';
-        case UserRole.SUPPORT: return 'Поддержка';
-        case UserRole.USER: return 'Пользователь';
-        default: return role;
-    }
 };
 
 export default UserManagement;
