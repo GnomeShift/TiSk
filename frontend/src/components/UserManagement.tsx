@@ -20,6 +20,9 @@ const UserManagement: React.FC = () => {
     const [roleFilter, setRoleFilter] = useState<string>('ALL');
     const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
+    const [sortBy, setSortBy] = useState<string>('createdAt');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
     const [formData, setFormData] = useState<CreateUserDTO>({
         email: '',
         password: '',
@@ -70,7 +73,10 @@ const UserManagement: React.FC = () => {
                 user.email.toLowerCase().includes(searchLower) ||
                 user.firstName.toLowerCase().includes(searchLower) ||
                 user.lastName.toLowerCase().includes(searchLower) ||
-                (user.login && user.login.toLowerCase().includes(searchLower))
+                (user.login && user.login.toLowerCase().includes(searchLower)) ||
+                (user.phoneNumber && user.phoneNumber.toLowerCase().includes(searchLower)) ||
+                (user.department && user.department.toLowerCase().includes(searchLower)) ||
+                (user.position && user.position.toLowerCase().includes(searchLower))
             );
         }
 
@@ -82,8 +88,52 @@ const UserManagement: React.FC = () => {
             filtered = filtered.filter(user => user.status === statusFilter);
         }
 
+        filtered.sort((a, b) => {
+            let aVal: any;
+            let bVal: any;
+
+            switch (sortBy) {
+                case 'name':
+                    aVal = `${a.firstName} ${a.lastName}`.toLowerCase();
+                    bVal = `${b.firstName} ${b.lastName}`.toLowerCase();
+                    break;
+                case 'email':
+                    aVal = a.email.toLowerCase();
+                    bVal = b.email.toLowerCase();
+                    break;
+                case 'role':
+                    aVal = a.role;
+                    bVal = b.role;
+                    break;
+                case 'status':
+                    aVal = a.status;
+                    bVal = b.status;
+                    break;
+                case 'department':
+                    aVal = (a.department || '').toLowerCase();
+                    bVal = (b.department || '').toLowerCase();
+                    break;
+                case 'createdAt':
+                    aVal = new Date(a.createdAt).getTime();
+                    bVal = new Date(b.createdAt).getTime();
+                    break;
+                case 'updatedAt':
+                    aVal = new Date(a.updatedAt).getTime();
+                    bVal = new Date(b.updatedAt).getTime();
+                    break;
+                default:
+                    aVal = a[sortBy as keyof UserDTO];
+                    bVal = b[sortBy as keyof UserDTO];
+            }
+
+            if (sortOrder === 'asc') {
+                return aVal > bVal ? 1 : -1;
+            }
+            return bVal > aVal ? 1 : -1;
+        });
+
         return filtered;
-    }, [users, search, roleFilter, statusFilter]);
+    }, [users, search, roleFilter, statusFilter, sortBy, sortOrder]);
 
     const paginatedUsers = useMemo(() => {
         const start = (currentPage - 1) * itemsPerPage;
@@ -95,7 +145,25 @@ const UserManagement: React.FC = () => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [search, roleFilter, statusFilter]);
+    }, [search, roleFilter, statusFilter, sortBy, sortOrder]);
+
+    const handleSort = (field: string) => {
+        if (sortBy === field) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(field);
+            setSortOrder('asc');
+        }
+    };
+
+    const handleResetFilters = () => {
+        setSearch('');
+        setRoleFilter('ALL');
+        setStatusFilter('ALL');
+        setSortBy('createdAt');
+        setSortOrder('desc');
+        setCurrentPage(1);
+    };
 
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -195,7 +263,14 @@ const UserManagement: React.FC = () => {
         });
     };
 
-    if (loading) return <div className="loading">Загрузка...</div>;
+    const getSortIcon = (field: string) => {
+        if (sortBy !== field) return '↕';
+        return sortOrder === 'asc' ? '↑' : '↓';
+    };
+
+    const hasActiveFilters = search !== '' || roleFilter !== 'ALL' || statusFilter !== 'ALL';
+
+    if (loading) return <div className="loading"></div>;
     if (error) return <div className="error">{error}</div>;
 
     return (
@@ -211,10 +286,10 @@ const UserManagement: React.FC = () => {
             </div>
 
             <div className="user-filters">
-                <div className="filter-group">
+                <div className="filter-group search-group">
                     <input
                         type="text"
-                        placeholder="Поиск по имени, email или логину..."
+                        placeholder="Поиск по имени, email, телефону, отделу, должности..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="search-input"
@@ -243,6 +318,14 @@ const UserManagement: React.FC = () => {
                         <option value={UserStatus.INACTIVE}>{getUserStatusLabel(UserStatus.INACTIVE)}</option>
                         <option value={UserStatus.SUSPENDED}>{getUserStatusLabel(UserStatus.SUSPENDED)}</option>
                     </select>
+                </div>
+                <div className="filter-group filter-actions">
+                    <button
+                        onClick={handleResetFilters}
+                        className="btn btn-secondary"
+                    >
+                        Сбросить фильтры
+                    </button>
                 </div>
                 <div className="filter-stats">
                     Найдено: {filteredUsers.length} из {users.length}
@@ -541,102 +624,158 @@ const UserManagement: React.FC = () => {
                 </div>
             )}
 
-            <div className="table-wrapper">
-                <div className="users-table">
-                    <table>
-                        <thead>
-                        <tr>
-                            <th>Имя</th>
-                            <th>Email</th>
-                            <th>Логин</th>
-                            <th>Роль</th>
-                            <th>Статус</th>
-                            <th>Отдел</th>
-                            <th>Регистрация</th>
-                            <th>Действия</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {paginatedUsers.map(user => (
-                            <tr key={user.id}>
-                                <td>
-                                        <span className="cell-text" title={`${user.firstName} ${user.lastName}`}>
-                                            {user.firstName} {user.lastName}
-                                        </span>
-                                </td>
-                                <td>
-                                        <span className="cell-text" title={user.email}>
-                                            {user.email}
-                                        </span>
-                                </td>
-                                <td>
-                                        <span className="cell-text" title={user.login}>
-                                            {user.login}
-                                        </span>
-                                </td>
-                                <td>
-                                        <span className={`role-badge role-${user.role.toLowerCase()}`}>
-                                            {getRoleLabel(user.role)}
-                                        </span>
-                                </td>
-                                <td>
-                                        <span className={`status-badge status-${user.status.toLowerCase()}`}>
-                                            {getUserStatusLabel(user.status)}
-                                        </span>
-                                </td>
-                                <td>
-                                        <span className="cell-text" title={user.department || ''}>
-                                            {user.department || '—'}
-                                        </span>
-                                </td>
-                                <td>
-                                    {new Date(user.createdAt).toLocaleDateString()}
-                                </td>
-                                <td>
-                                    <div className="table-actions">
-                                        <button
-                                            onClick={() => openEditModal(user)}
-                                            className="btn-icon btn-primary"
-                                            title="Редактировать"
-                                        >
-                                            ✎
-                                        </button>
-                                        <button
-                                            onClick={() => handleChangeStatus(
-                                                user.id,
-                                                user.status === UserStatus.ACTIVE ? UserStatus.SUSPENDED : UserStatus.ACTIVE
-                                            )}
-                                            className="btn-icon btn-warning"
-                                            title={user.status === UserStatus.ACTIVE ? "Заблокировать" : "Разблокировать"}
-                                            disabled={user.id === currentUser?.id}
-                                        >
-                                            {user.status === UserStatus.ACTIVE ? '🔒' : '🔓'}
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteUser(user.id)}
-                                            className="btn-icon btn-danger"
-                                            title="Удалить"
-                                            disabled={user.id === currentUser?.id}
-                                        >
-                                            🗑
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                        </tbody>
-                    </table>
+            {filteredUsers.length === 0 ? (
+                <div className="empty-state">
+                    <div className="empty-icon">👥</div>
+                    <h3>Пользователи не найдены</h3>
+                    {hasActiveFilters ? (
+                        <>
+                            <p>По заданным фильтрам не найдено ни одного пользователя.</p>
+                            <button
+                                onClick={handleResetFilters}
+                                className="btn btn-primary"
+                            >
+                                Сбросить фильтры
+                            </button>
+                        </>
+                    ) : (
+                        <p>В системе нет зарегистрированных пользователей.</p>
+                    )}
                 </div>
-            </div>
+            ) : (
+                <>
+                    <div className="table-wrapper">
+                        <div className="users-table">
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th className="th-name sortable" onClick={() => handleSort('name')}>
+                                        Имя {getSortIcon('name')}
+                                    </th>
+                                    <th className="th-email sortable" onClick={() => handleSort('email')}>
+                                        Email {getSortIcon('email')}
+                                    </th>
+                                    <th className="th-login">Логин</th>
+                                    <th className="th-role sortable" onClick={() => handleSort('role')}>
+                                        Роль {getSortIcon('role')}
+                                    </th>
+                                    <th className="th-status sortable" onClick={() => handleSort('status')}>
+                                        Статус {getSortIcon('status')}
+                                    </th>
+                                    <th className="th-phone">Телефон</th>
+                                    <th className="th-department sortable" onClick={() => handleSort('department')}>
+                                        Отдел {getSortIcon('department')}
+                                    </th>
+                                    <th className="th-position">Должность</th>
+                                    <th className="th-date sortable" onClick={() => handleSort('createdAt')}>
+                                        Регистрация {getSortIcon('createdAt')}
+                                    </th>
+                                    <th className="th-date sortable" onClick={() => handleSort('updatedAt')}>
+                                        Изменен {getSortIcon('updatedAt')}
+                                    </th>
+                                    <th className="th-actions">Действия</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {paginatedUsers.map(user => (
+                                    <tr key={user.id}>
+                                        <td className="td-name">
+                                                <span className="cell-text" title={`${user.firstName} ${user.lastName}`}>
+                                                    {user.firstName} {user.lastName}
+                                                </span>
+                                        </td>
+                                        <td className="td-email">
+                                                <span className="cell-text" title={user.email}>
+                                                    {user.email}
+                                                </span>
+                                        </td>
+                                        <td className="td-login">
+                                                <span className="cell-text" title={user.login}>
+                                                    {user.login}
+                                                </span>
+                                        </td>
+                                        <td className="td-role">
+                                                <span className={`role-badge role-${user.role.toLowerCase()}`}>
+                                                    {getRoleLabel(user.role)}
+                                                </span>
+                                        </td>
+                                        <td className="td-status">
+                                                <span className={`status-badge status-${user.status.toLowerCase()}`}>
+                                                    {getUserStatusLabel(user.status)}
+                                                </span>
+                                        </td>
+                                        <td className="td-phone">
+                                                <span className="cell-text" title={user.phoneNumber || ''}>
+                                                    {user.phoneNumber || '—'}
+                                                </span>
+                                        </td>
+                                        <td className="td-department">
+                                                <span className="cell-text" title={user.department || ''}>
+                                                    {user.department || '—'}
+                                                </span>
+                                        </td>
+                                        <td className="td-position">
+                                                <span className="cell-text" title={user.position || ''}>
+                                                    {user.position || '—'}
+                                                </span>
+                                        </td>
+                                        <td className="td-date">
+                                                <span className="cell-date">
+                                                    {new Date(user.createdAt).toLocaleDateString()}
+                                                </span>
+                                        </td>
+                                        <td className="td-date">
+                                                <span className="cell-date">
+                                                    {new Date(user.updatedAt).toLocaleDateString()}
+                                                </span>
+                                        </td>
+                                        <td className="td-actions">
+                                            <div className="table-actions">
+                                                <button
+                                                    onClick={() => openEditModal(user)}
+                                                    className="btn-icon btn-primary"
+                                                    title="Редактировать"
+                                                >
+                                                    ✎
+                                                </button>
+                                                <button
+                                                    onClick={() => handleChangeStatus(
+                                                        user.id,
+                                                        user.status === UserStatus.ACTIVE ? UserStatus.SUSPENDED : UserStatus.ACTIVE
+                                                    )}
+                                                    className="btn-icon btn-warning"
+                                                    title={user.status === UserStatus.ACTIVE ? "Заблокировать" : "Разблокировать"}
+                                                    disabled={user.id === currentUser?.id}
+                                                >
+                                                    {user.status === UserStatus.ACTIVE ? '🔒' : '🔓'}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteUser(user.id)}
+                                                    className="btn-icon btn-danger"
+                                                    title="Удалить"
+                                                    disabled={user.id === currentUser?.id}
+                                                >
+                                                    🗑
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
 
-            {totalPages > 1 && (
-                <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                    totalItems={filteredUsers.length}
-                    itemsPerPage={itemsPerPage}
-                />
+                    {totalPages > 1 && (
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                            totalItems={filteredUsers.length}
+                            itemsPerPage={itemsPerPage}
+                        />
+                    )}
+                </>
             )}
         </div>
     );
