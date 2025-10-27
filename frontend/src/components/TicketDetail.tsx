@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {TicketDTO, TicketStatus} from '../types/ticket';
 import { ticketService } from '../services/ticketService';
-import {getPriorityColor, getStatusColor, getStatusLabel} from '../services/utils';
+import {getPriorityColor, getStatusColor, getStatusLabel, getPriorityLabel, getRoleLabel} from '../services/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { userService } from '../services/userService';
 import { UserDTO } from '../types/user';
@@ -31,7 +31,6 @@ const TicketDetail: React.FC = () => {
             setLoading(true);
             const data = await ticketService.getById(ticketId);
             setTicket(data);
-            console.log(data)
             setAssigneeId(data.assignee?.id || '');
         }
         catch (err) {
@@ -157,14 +156,17 @@ const TicketDetail: React.FC = () => {
                                     </select>
                                 ) : (
                                     <span className={`status ${getStatusColor(ticket.status)}`}>
-                                        {ticket.status}
+                                        {getStatusLabel(ticket.status)}
                                     </span>
                                 )}
                             </dd>
 
                             <dt>Приоритет:</dt>
-                            <dd className={`priority ${getPriorityColor(ticket.priority)}`}>
-                                {ticket.priority}
+                            <dd>
+                                <span
+                                    className={`priority ${getPriorityColor(ticket.priority)}`}>
+                                    {getPriorityLabel(ticket.priority)}
+                                </span>
                             </dd>
 
                             <dt>Автор:</dt>
@@ -212,7 +214,7 @@ const TicketDetail: React.FC = () => {
                                         <option value="">Выберите исполнителя</option>
                                         {users.map(u => (
                                             <option key={u.id} value={u.id}>
-                                                {u.firstName} {u.lastName} ({u.role})
+                                                {u.firstName} {u.lastName} ({getRoleLabel(u.role)})
                                             </option>
                                         ))}
                                     </select>
