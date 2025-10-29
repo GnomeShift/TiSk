@@ -420,6 +420,7 @@ const UserManagement: React.FC = () => {
                                         value={formData.phoneNumber}
                                         onChange={handleFormChange}
                                         className="form-control"
+                                        pattern="^$|^\+?[1-9]\d{0,10}$"
                                     />
                                 </div>
                                 <div className="form-group">
@@ -551,6 +552,7 @@ const UserManagement: React.FC = () => {
                                         value={editFormData.phoneNumber}
                                         onChange={handleEditFormChange}
                                         className="form-control"
+                                        pattern="^$|^\+?[1-9]\d{0,10}$"
                                     />
                                 </div>
                                 <div className="form-group">

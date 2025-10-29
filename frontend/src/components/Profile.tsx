@@ -234,7 +234,7 @@ const Profile: React.FC = () => {
                                     value={formData.phoneNumber}
                                     onChange={handleProfileChange}
                                     className="form-control"
-                                    pattern="^\+?[1-9]\d{1,10}$"
+                                    pattern="^$|^\+?[1-9]\d{0,10}$"
                                 />
                             </div>
 
