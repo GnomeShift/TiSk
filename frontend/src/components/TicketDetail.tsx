@@ -6,7 +6,7 @@ import {getPriorityColor, getStatusColor, getStatusLabel, getPriorityLabel, getR
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { userService } from '../services/userService';
-import { UserDTO } from '../types/user';
+import { UserDTO, UserRole } from '../types/user';
 
 const TicketDetail: React.FC = () => {
     const { id } = useParams();
@@ -17,11 +17,12 @@ const TicketDetail: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const notification = useNotification();
     const [assigneeId, setAssigneeId] = useState<string>('');
+    const [showAssignModal, setShowAssignModal] = useState(false);
 
     useEffect(() => {
         if (id) {
             loadTicket(id);
-            if (user?.role === 'ADMIN' || user?.role === 'SUPPORT') {
+            if (user?.role === UserRole.ADMIN || user?.role === UserRole.SUPPORT) {
                 loadUsers();
             }
         }
@@ -45,9 +46,9 @@ const TicketDetail: React.FC = () => {
     const loadUsers = async () => {
         try {
             const data = await userService.getAll();
-            setUsers(data.filter(u => u.role === 'SUPPORT' || u.role === 'ADMIN'));
+            setUsers(data.filter(u => (u.role === UserRole.SUPPORT || u.role === UserRole.ADMIN) && u.status === 'ACTIVE'));
         } catch (err: any) {
-            notification.error('Ошибка загрузки пользователей:');
+            notification.error('Ошибка загрузки пользователей');
         }
     };
 
@@ -70,16 +71,34 @@ const TicketDetail: React.FC = () => {
         }
     };
 
-    const handleAssign = async () => {
+    const handleAssign = async (assigneeId: string) => {
         if (!ticket || !assigneeId) return;
 
         try {
             const updated = await ticketService.assignTicket(ticket.id, assigneeId);
             setTicket(updated);
-            notification.success('Тикет успешно назначен');
-            setAssigneeId('');
+            setAssigneeId(assigneeId);
+            setShowAssignModal(false);
+
+            const assignedUser = users.find(u => u.id === assigneeId);
+            if (assignedUser) {
+                notification.success('Тикет успешно назначен');
+            }
         } catch (err: any) {
             notification.error('Ошибка при назначении тикета');
+        }
+    };
+
+    const handleTakeTicket = async () => {
+        if (!ticket || !user) return;
+
+        try {
+            const updated = await ticketService.assignTicket(ticket.id, user.id);
+            setTicket(updated);
+            setAssigneeId(user.id);
+            notification.success('Тикет взят');
+        } catch (err: any) {
+            notification.error('Ошибка при взятии тикета');
         }
     };
 
@@ -100,15 +119,20 @@ const TicketDetail: React.FC = () => {
 
     const canEdit = () => {
         if (!ticket || !user) return false;
-        return user.role === 'ADMIN' || user.role === 'SUPPORT' || ticket.reporter?.id === user.id;
+        return user.role === UserRole.ADMIN || user.role === UserRole.SUPPORT || ticket.reporter?.id === user.id;
     };
 
     const canDelete = () => {
-        return user?.role === 'ADMIN';
+        return user?.role === UserRole.ADMIN;
     };
 
     const canAssign = () => {
-        return user?.role === 'ADMIN' || user?.role === 'SUPPORT';
+        return user?.role === UserRole.ADMIN;
+    };
+
+    const canTakeTicket = () => {
+        if (!ticket || !user) return false;
+        return (user.role === UserRole.ADMIN || user.role === UserRole.SUPPORT) && !ticket.assignee
     };
 
     if (loading) return <div className="loading"></div>;
@@ -166,8 +190,7 @@ const TicketDetail: React.FC = () => {
 
                             <dt>Приоритет:</dt>
                             <dd>
-                                <span
-                                    className={`priority ${getPriorityColor(ticket.priority)}`}>
+                                <span className={`priority ${getPriorityColor(ticket.priority)}`}>
                                     {getPriorityLabel(ticket.priority)}
                                 </span>
                             </dd>
@@ -185,7 +208,7 @@ const TicketDetail: React.FC = () => {
                                 )}
                             </dd>
 
-                            <dt>Назначен:</dt>
+                            <dt>Исполнитель:</dt>
                             <dd>
                                 {ticket.assignee ? (
                                     <>
@@ -205,35 +228,103 @@ const TicketDetail: React.FC = () => {
                             <dd>{new Date(ticket.updatedAt).toLocaleString()}</dd>
                         </dl>
 
-                        {canAssign() && (
-                            <div className="assign-section">
-                                <h4>Назначить тикет</h4>
-                                <div className="assign-form">
-                                    <select
-                                        value={assigneeId}
-                                        onChange={(e) => setAssigneeId(e.target.value)}
-                                        className="form-control"
-                                    >
-                                        <option value="">Выберите исполнителя</option>
-                                        {users.map(u => (
-                                            <option key={u.id} value={u.id}>
-                                                {u.firstName} {u.lastName} ({getRoleLabel(u.role)})
-                                            </option>
-                                        ))}
-                                    </select>
+                        {(canTakeTicket() || canAssign()) && (
+                            <div className="assign-actions">
+                                {canTakeTicket() && (
                                     <button
-                                        onClick={handleAssign}
-                                        className="btn btn-primary"
-                                        disabled={!assigneeId}
+                                        onClick={handleTakeTicket}
+                                        className="btn btn-primary btn-block"
                                     >
-                                        Назначить
+                                        🎯 Взять
                                     </button>
-                                </div>
+                                )}
+
+                                {canAssign() && (
+                                    <button
+                                        onClick={() => setShowAssignModal(true)}
+                                        className="btn btn-primary btn-block"
+                                        style={{ marginTop: '0.5rem' }}
+                                    >
+                                        👤 Назначить исполнителя
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>
                 </div>
             </div>
+
+            {showAssignModal && (
+                <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>
+                    <div className="modal-content assign-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Назначить исполнителя</h3>
+                            <button
+                                className="modal-close"
+                                onClick={() => setShowAssignModal(false)}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="assign-list">
+                            {users.length === 0 ? (
+                                <div className="empty-state">
+                                    <p>Нет доступных исполнителей</p>
+                                </div>
+                            ) : (
+                                users.map(u => (
+                                    <div
+                                        key={u.id}
+                                        className={`assign-user-card ${assigneeId === u.id ? 'current' : ''}`}
+                                        onClick={() => handleAssign(u.id)}
+                                    >
+                                        <div className="user-info">
+                                            <div className="user-avatar">
+                                                {u.firstName.charAt(0)}{u.lastName.charAt(0)}
+                                            </div>
+                                            <div className="user-details">
+                                                <div className="user-name">
+                                                    {u.firstName} {u.lastName}
+                                                    {assigneeId === u.id && (
+                                                        <span className="current-badge">Текущий</span>
+                                                    )}
+                                                </div>
+                                                <div className="user-meta">
+                                                    <span className="user-email">{u.email}</span>
+                                                    <span className={`role-badge role-${u.role.toLowerCase()}`}>
+                                                        {getRoleLabel(u.role)}
+                                                    </span>
+                                                </div>
+                                                {u.department && (
+                                                    <div className="user-department">
+                                                        🏢 {u.department}
+                                                        {u.position && ` • ${u.position}`}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {assigneeId !== u.id && (
+                                            <div className="assign-button">
+                                                <span className="assign-icon">→</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <div className="modal-actions">
+                            <button
+                                onClick={() => setShowAssignModal(false)}
+                                className="btn btn-secondary"
+                            >
+                                Отмена
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
