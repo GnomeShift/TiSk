@@ -73,7 +73,7 @@ const TicketList: React.FC = () => {
     };
 
     const filteredAndSortedTickets = useMemo(() => {
-        let filtered = getTicketsByViewMode(allTickets);
+        let filtered = [...getTicketsByViewMode(allTickets)];
 
         if (search) {
             const searchLower = search.toLowerCase();
