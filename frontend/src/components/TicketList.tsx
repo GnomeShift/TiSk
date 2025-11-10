@@ -73,7 +73,7 @@ const TicketList: React.FC = () => {
     };
 
     const filteredAndSortedTickets = useMemo(() => {
-        let filtered = getTicketsByViewMode(allTickets);
+        let filtered = [...getTicketsByViewMode(allTickets)];
 
         if (search) {
             const searchLower = search.toLowerCase();
@@ -336,8 +336,8 @@ const TicketList: React.FC = () => {
                                             </button>
                                         )}
                                         {canEdit(ticket) && (
-                                            <Link to={`/edit/${ticket.id}`} className="btn btn-sm">
-                                                Редактировать
+                                            <Link to={`/edit/${ticket.id}`} className="btn btn-sm" title="Редактировать">
+                                                Ред.
                                             </Link>
                                         )}
                                         {canDelete() && (
