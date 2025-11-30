@@ -296,6 +296,11 @@ textarea.form-control {
   transition: color 0.2s;
 }
 
+.ticket-header .priority {
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
 .ticket-title a:hover {
   color: #007bff;
 }
