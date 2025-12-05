@@ -98,6 +98,10 @@ public class TicketService {
     public void deleteTicket(UUID id) {
         log.info("Deleting ticket with id: {}", id);
 
+        if (!ticketRepository.existsById(id)) {
+            throw new EntityNotFoundException("Ticket not found with id: " + id);
+        }
+
         ticketRepository.deleteById(id);
         log.info("Ticket deleted successfully: {}", id);
     }
