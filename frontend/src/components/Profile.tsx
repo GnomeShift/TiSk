@@ -4,7 +4,7 @@ import { useNotification } from '../contexts/NotificationContext';
 import { userService } from '../services/userService';
 import { ChangePasswordDTO } from '../types/auth';
 import { UpdateUserDTO } from '../types/user';
-import { getUserStatusLabel, getRoleLabel, validatePassword } from '../services/utils';
+import { getRoleLabel, validatePassword } from '../services/utils';
 
 const Profile: React.FC = () => {
     const notification = useNotification();
@@ -124,13 +124,6 @@ const Profile: React.FC = () => {
                                 <dd>
                                     <span className={`role-badge role-${user.role.toLowerCase()}`}>
                                         {getRoleLabel(user.role)}
-                                    </span>
-                                </dd>
-
-                                <dt>Статус:</dt>
-                                <dd>
-                                    <span className={`status-badge status-${user.status.toLowerCase()}`}>
-                                        {getUserStatusLabel(user.status)}
                                     </span>
                                 </dd>
 
