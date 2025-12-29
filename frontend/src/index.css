@@ -1095,9 +1095,7 @@ textarea.form-control {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #eee;
+  margin-bottom: 1rem;
 }
 
 .modal-header h3 {
@@ -1169,9 +1167,7 @@ textarea.form-control {
   display: flex;
   gap: 1rem;
   justify-content: flex-end;
-  margin-top: 2rem;
   padding-top: 1rem;
-  border-top: 1px solid #eee;
 }
 
 /* Table with horizontal scroll */
@@ -2103,9 +2099,10 @@ textarea.form-control {
 }
 
 .assign-list {
-  max-height: 500px;
+  max-height: 400px;
   overflow-y: auto;
-  margin: 1.5rem 0;
+  margin: 1rem 0;
+  padding: 0.5rem;
 }
 
 .assign-user-card {
@@ -2121,6 +2118,10 @@ textarea.form-control {
   transition: all 0.2s;
 }
 
+.assign-user-card:last-child {
+  margin-bottom: 0;
+}
+
 .assign-user-card:hover {
   background: #e7f3ff;
   border-color: #007bff;
@@ -2130,10 +2131,12 @@ textarea.form-control {
 .assign-user-card.current {
   background: #d4edda;
   border-color: #28a745;
+  cursor: default;
 }
 
 .assign-user-card.current:hover {
   background: #c3e6cb;
+  transform: none;
 }
 
 .user-info {
@@ -2141,6 +2144,7 @@ textarea.form-control {
   align-items: center;
   gap: 1rem;
   flex: 1;
+  min-width: 0;
 }
 
 .user-avatar {
@@ -2161,6 +2165,7 @@ textarea.form-control {
 .user-details {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .user-name {
@@ -2170,11 +2175,12 @@ textarea.form-control {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .current-badge {
   display: inline-block;
-  padding: 0.125rem 0.5rem;
+  padding: 0.4rem;
   background: #28a745;
   color: white;
   border-radius: 12px;
@@ -2193,12 +2199,19 @@ textarea.form-control {
 .user-email {
   font-size: 0.875rem;
   color: #666;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 250px;
 }
 
 .user-department {
   font-size: 0.875rem;
   color: #666;
   margin-top: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .assign-button {
@@ -2224,23 +2237,8 @@ textarea.form-control {
   font-weight: bold;
 }
 
-/* Scrollbar for assignee list */
-.assign-list::-webkit-scrollbar {
-  width: 8px;
-}
-
-.assign-list::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-.assign-list::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
-}
-
-.assign-list::-webkit-scrollbar-thumb:hover {
-  background: #555;
+.assign-list {
+  scrollbar-color: #c0c0c0 #f1f1f1;
 }
 
 /* Text muted improvement */
@@ -2254,10 +2252,11 @@ textarea.form-control {
   .assign-modal {
     max-width: 100%;
     max-height: 90vh;
+    margin: 0.5rem;
   }
 
   .assign-list {
-    max-height: 400px;
+    max-height: 50vh;
   }
 
   .assign-user-card {
@@ -2272,6 +2271,10 @@ textarea.form-control {
 
   .user-name {
     font-size: 0.9rem;
+  }
+
+  .user-email {
+    max-width: 150px;
   }
 
   .user-email,
