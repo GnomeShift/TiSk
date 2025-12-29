@@ -1389,25 +1389,6 @@ textarea.form-control {
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-/* Scrollbar */
-.table-wrapper::-webkit-scrollbar {
-  height: 8px;
-}
-
-.table-wrapper::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-.table-wrapper::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
-}
-
-.table-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-
 /* Loading & Error */
 .loading, .error, .empty-state {
   text-align: center;
@@ -3067,5 +3048,392 @@ textarea.form-control {
 
   .chart-bar-value {
     display: none;
+  }
+}
+
+/* Field validation */
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-wrapper .form-control {
+  padding-right: 40px;
+}
+
+/* Field state icon */
+.input-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  font-weight: bold;
+  pointer-events: none;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.input-icon-error {
+  color: white;
+  background: #dc3545;
+  animation: shake 0.4s ease-in-out;
+}
+
+.input-icon-success {
+  color: white;
+  background: #28a745;
+  animation: popIn 0.3s ease-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateY(-50%) translateX(0); }
+  25% { transform: translateY(-50%) translateX(-5px); }
+  75% { transform: translateY(-50%) translateX(5px); }
+}
+
+@keyframes popIn {
+  0% { transform: translateY(-50%) scale(0); opacity: 0; }
+  50% { transform: translateY(-50%) scale(1.2); }
+  100% { transform: translateY(-50%) scale(1); opacity: 1; }
+}
+
+/* Error group */
+.form-group.has-error label {
+  color: #dc3545;
+}
+
+/* Error field */
+.input-error {
+  border-color: #dc3545 !important;
+  background-color: #fff8f8 !important;
+  animation: errorPulse 0.3s ease;
+}
+
+.input-error:focus {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2) !important;
+}
+
+@keyframes errorPulse {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  50% { transform: translateX(2px); }
+  75% { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
+}
+
+/* Field in focus */
+.input-focused {
+  border-color: #007bff !important;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2) !important;
+}
+
+/* Field error message */
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #dc3545;
+  line-height: 1.3;
+  animation: slideDown 0.2s ease-out;
+}
+
+.error-icon {
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Field hint */
+.form-hint {
+  display: block;
+  margin-top: 0.375rem;
+  font-size: 0.8rem;
+  color: #6c757d;
+  line-height: 1.3;
+}
+
+/* Required field */
+.required-mark {
+  color: #dc3545;
+  margin-left: 0.25rem;
+  font-weight: bold;
+}
+
+/* Char counter */
+.char-counter {
+  display: block;
+  text-align: right;
+  font-size: 0.75rem;
+  color: #999;
+  margin-top: 0.25rem;
+}
+
+.char-counter-warning {
+  color: #dc3545;
+  font-weight: 500;
+}
+
+/* Disabled field */
+.form-control:disabled {
+  background-color: #f5f5f5 !important;
+  border-color: #ddd !important;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Password validation */
+.password-input-wrapper {
+  position: relative;
+}
+
+.password-input-wrapper .form-control {
+  padding-right: 80px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.password-toggle:hover {
+  opacity: 1;
+}
+
+/* Password strength indicator */
+.password-strength {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.password-strength-bar {
+  flex: 1;
+  height: 4px;
+  background: #e9ecef;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.password-strength-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.password-strength-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 60px;
+  text-align: right;
+}
+
+/* Password requirements */
+.password-requirements {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.requirement {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.requirement-passed {
+  color: #28a745;
+}
+
+.requirement-failed {
+  color: #6c757d;
+}
+
+.requirement-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.requirement-passed .requirement-icon {
+  color: #28a745;
+}
+
+.requirement-failed .requirement-icon {
+  color: #adb5bd;
+}
+
+.requirement-label {
+  flex: 1;
+}
+
+/* Textarea */
+textarea.form-control {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.input-wrapper textarea.form-control {
+  padding-right: 12px;
+}
+
+.input-wrapper textarea ~ .input-icon {
+  top: 12px;
+  transform: none;
+}
+
+/* Forms */
+.auth-form .form-group {
+  margin-bottom: 1.25rem;
+}
+
+.auth-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.auth-form .form-control {
+  transition: all 0.2s ease;
+}
+
+.auth-form .btn-block {
+  margin-top: 0.5rem;
+}
+
+.ticket-form .form-group {
+  margin-bottom: 1.25rem;
+}
+
+.ticket-form h2 {
+  margin-bottom: 1.5rem;
+}
+
+.profile-form .form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 500;
+  color: #333;
+  font-size: 0.9rem;
+  transition: color 0.2s ease;
+}
+
+.form-control {
+  transition: border-color 0.2s ease,
+  box-shadow 0.2s ease,
+  background-color 0.2s ease;
+}
+
+/* Hover states */
+.form-control:not(:disabled):hover {
+  border-color: #adb5bd;
+}
+
+.form-control:not(:disabled):focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+  outline: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .auth-form .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .input-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    right: 10px;
+  }
+
+  .error-message {
+    font-size: 0.8rem;
+  }
+
+  .form-hint {
+    font-size: 0.75rem;
+  }
+
+  .password-toggle {
+    right: 36px;
+  }
+
+  .password-input-wrapper .form-control {
+    padding-right: 70px;
+  }
+
+  .password-requirements {
+    padding: 0.5rem;
+  }
+
+  .requirement {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .input-wrapper .form-control {
+    padding-right: 36px;
+  }
+
+  .char-counter {
+    font-size: 0.7rem;
+  }
+
+  .password-strength {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+  }
+
+  .password-strength-label {
+    text-align: left;
   }
 }
