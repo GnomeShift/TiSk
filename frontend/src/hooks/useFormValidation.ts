@@ -24,28 +24,18 @@ export const useFormValidation = () => {
         });
     }, []);
 
-    const validateAll = useCallback((): boolean => {
-        // Increase counter to trigger validation in all fields
-        setForceValidate(prev => prev + 1);
-
-        // Little delay
-        return new Promise<boolean>((resolve) => {
-            setTimeout(() => {
-                const hasErrors = Object.values(fieldErrorsRef.current).some(error => error !== '');
-                resolve(!hasErrors);
-            }, 50);
-        }) as unknown as boolean;
-    }, []);
-
-    const validateForm = useCallback(async (): Promise<FormValidationResult> => {
-        setForceValidate(prev => prev + 1);
-
+    const validateForm = useCallback((): Promise<FormValidationResult> => {
         return new Promise((resolve) => {
-            setTimeout(() => {
-                const errors = { ...fieldErrorsRef.current };
-                const isValid = Object.values(errors).every(error => !error);
-                resolve({ isValid, errors });
-            }, 50);
+            setForceValidate(prev => prev + 1);
+
+            // Little delay
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    const errors = { ...fieldErrorsRef.current };
+                    const isValid = Object.values(errors).every(error => !error);
+                    resolve({ isValid, errors });
+                }, 0);
+            });
         });
     }, []);
 
@@ -60,7 +50,6 @@ export const useFormValidation = () => {
         fieldErrors,
         registerFieldError,
         clearFieldError,
-        validateAll,
         validateForm,
         resetValidation
     };
