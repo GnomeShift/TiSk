@@ -240,7 +240,7 @@ export default FormInput;
 export const validationRules = {
     email: (): ValidationRule => ({
         validate: (value) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
-        message: 'Некорректный формат email'
+        message: 'Некорректный формат'
     }),
 
     password: (): ValidationRule => ({
@@ -258,8 +258,8 @@ export const validationRules = {
         message: 'Некорректный формат'
     }),
 
-    match: (matchValue: string, fieldName: string): ValidationRule => ({
-        validate: (value) => value === matchValue,
+    match: (getMatchValue: () => string, fieldName: string): ValidationRule => ({
+        validate: (value) => value === getMatchValue(),
         message: `${fieldName} не совпадают`
     }),
 

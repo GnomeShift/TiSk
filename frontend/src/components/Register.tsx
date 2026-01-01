@@ -153,7 +153,7 @@ const Register: React.FC = () => {
                         required
                         placeholder="••••••••"
                         disabled={loading}
-                        rules={[validationRules.match(formData.password, 'Пароли')]}
+                        rules={[validationRules.match(() => formData.password, 'Пароли')]}
                         forceValidate={forceValidate}
                         onValidationChange={registerFieldError}
                     />

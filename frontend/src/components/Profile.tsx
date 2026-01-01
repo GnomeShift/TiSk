@@ -336,7 +336,7 @@ const Profile: React.FC = () => {
                             required
                             placeholder="••••••••"
                             disabled={loading}
-                            rules={[validationRules.match(passwordData.newPassword, 'Пароли')]}
+                            rules={[validationRules.match(() => passwordData.newPassword, 'Пароли')]}
                             forceValidate={passwordValidation.forceValidate}
                             onValidationChange={passwordValidation.registerFieldError}
                         />
