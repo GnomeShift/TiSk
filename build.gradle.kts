@@ -34,6 +34,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-security")
+	implementation("io.micrometer:micrometer-registry-prometheus:1.16.1")
 	implementation("org.mapstruct:mapstruct:1.6.3")
 	implementation("io.jsonwebtoken:jjwt-api:0.13.0")
 	implementation("io.github.cdimascio:dotenv-java:3.2.0")
