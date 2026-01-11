@@ -109,10 +109,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ExceptionDetails> authenticationException(WebRequest request) {
+    public ResponseEntity<ExceptionDetails> authenticationException(AuthenticationException ex, WebRequest request) {
         ExceptionDetails details = new ExceptionDetails(
                 LocalDateTime.now(),
-                "Authentication failed",
+                ex.getMessage(),
                 request.getDescription(false)
         );
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(details);
