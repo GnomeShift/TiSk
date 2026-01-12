@@ -40,7 +40,9 @@ const Login: React.FC = () => {
             await login(formData);
             navigate('/');
         } catch (err: any) {
-            notification.error('Ошибка входа');
+            const message = err.response?.status === 401
+                ? 'Неверный email или пароль' : 'Ошибка входа';
+            notification.error(message);
         } finally {
             setLoading(false);
         }
