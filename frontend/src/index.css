@@ -890,10 +890,16 @@ textarea.form-control {
 .detail-main h3 {
   margin-bottom: 1rem;
   font-size: 1.5rem;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .detail-description {
   margin-top: 2rem;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .detail-description h4 {
