@@ -5,6 +5,7 @@ import { ticketService } from '../services/ticketService';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from '../services/toast';
 import FormInput from './FormInput';
+import { getErrorMessage } from '../services/errorTranslator';
 import { useFormValidation } from '../hooks/useFormValidation';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -30,7 +31,7 @@ const TicketForm: React.FC = () => {
             description: t.description,
             status: t.status,
             priority: t.priority
-        })).catch(() => { toast.error('Попробуйте снова'); navigate('/') }).finally(() => setInitLoading(false));
+        })).catch((err) => { toast.error(getErrorMessage(err)); navigate('/') }).finally(() => setInitLoading(false));
     }, [id]);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -49,7 +50,7 @@ const TicketForm: React.FC = () => {
             }
             navigate('/');
         } catch (err) {
-            toast.error('Ошибка сохранения тикета');
+            toast.error(getErrorMessage(err));
         } finally {
             setLoading(false);
         }

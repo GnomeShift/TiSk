@@ -17,6 +17,7 @@ import { useBlockConfirm, useDeleteConfirm } from './ui/confirm-dialog';
 import { SkeletonUserManagement } from './ui/skeleton';
 import { UserRoleSelect, UserStatusSelect } from './ui/entity-select';
 import { ArrowUpDown, Edit, Lock, RotateCcw, Search, Trash2, Unlock, UserPlus, Users } from 'lucide-react';
+import { getErrorMessage } from '../services/errorTranslator';
 
 const UserFormModal: React.FC<{
     user: UserDTO | null;
@@ -221,7 +222,7 @@ const UserManagement: React.FC = () => {
             setLoading(true);
             setUsers(await userService.getAll());
         } catch (err) {
-            toast.error('Ошибка загрузки пользователей');
+            toast.error(getErrorMessage(err));
         } finally {
             setLoading(false);
         }

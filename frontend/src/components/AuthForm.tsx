@@ -8,6 +8,7 @@ import PasswordInput from './PasswordInput';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { UserPlus } from 'lucide-react';
+import { getErrorMessage } from '../services/errorTranslator';
 
 type AuthMode = 'login' | 'register';
 
@@ -71,7 +72,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
             }
             navigate('/');
         } catch (err) {
-            toast.error('Ошибка входа');
+            toast.error(getErrorMessage(err));
         } finally {
             setLoading(false);
         }

@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { SkeletonStatistics } from './ui/skeleton';
 import { CheckCircle2, Clock, FileText, RefreshCw, TrendingUp, Users, Activity, AlertCircle, Trophy, Medal } from 'lucide-react';
+import { getErrorMessage } from '../services/errorTranslator';
 
 type TabType = 'overview' | 'assignees' | 'trends';
 
@@ -98,7 +99,7 @@ const Statistics: React.FC = () => {
                 setAssigneesStats(await statisticsService.getAllAssigneesStatistics());
             }
         } catch (err) {
-            toast.error('Ошибка загрузки статистики');
+            toast.error(getErrorMessage(err));
         } finally {
             setLoading(false);
         }

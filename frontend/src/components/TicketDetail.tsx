@@ -17,6 +17,7 @@ import { TicketStatusSelect } from './ui/entity-select';
 import { useDeleteConfirm } from './ui/confirm-dialog';
 import { usePermissions } from '../hooks/usePermissions';
 import { ArrowLeft, ArrowRight, Building2, Edit, Loader2, Target, Trash2, UserPlus } from 'lucide-react';
+import { getErrorMessage } from '../services/errorTranslator';
 
 const TicketDetail: React.FC = () => {
     const { id } = useParams();
@@ -32,8 +33,8 @@ const TicketDetail: React.FC = () => {
 
     useEffect(() => {
         if (id) {
-            ticketService.getById(id).then(setTicket).catch(() => {
-                toast.error('Тикет не найден');
+            ticketService.getById(id).then(setTicket).catch((err) => {
+                toast.error(getErrorMessage(err));
                 navigate('/'); }).finally(() => setLoading(false));
             if (user?.role === UserRole.ADMIN || user?.role === UserRole.SUPPORT) {
                 userService.getAll().then(data =>

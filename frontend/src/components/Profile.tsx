@@ -11,6 +11,7 @@ import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { SkeletonProfile } from './ui/skeleton';
 import { Edit, Key, Save, User, X } from 'lucide-react';
+import { getErrorMessage } from '../services/errorTranslator';
 
 const Profile: React.FC = () => {
     const { user, updateUser, changePassword } = useAuth();
@@ -44,7 +45,7 @@ const Profile: React.FC = () => {
             setIsEditing(false);
             toast.success('Профиль обновлен');
         } catch (err) {
-            toast.error('Ошибка обновления профиля');
+            toast.error(getErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -62,7 +63,7 @@ const Profile: React.FC = () => {
             passwordValidation.resetValidation();
             toast.success('Пароль изменен');
         } catch (err) {
-            toast.error('Ошибка изменения пароля');
+            toast.error(getErrorMessage(err));
         } finally {
             setLoading(false);
         }

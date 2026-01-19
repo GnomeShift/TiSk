@@ -17,6 +17,7 @@ import { SimpleTooltip } from './ui/tooltip';
 import {Edit, Eye, NotebookText, Plus, Target, Trash2} from 'lucide-react';
 import { Button } from './ui/button';
 import { usePermissions } from '../hooks/usePermissions';
+import { getErrorMessage } from '../services/errorTranslator';
 
 type ViewMode = 'all' | 'reported' | 'assigned' | 'available';
 
@@ -48,7 +49,7 @@ const TicketList: React.FC = () => {
             setLoading(true);
             setAllTickets(await ticketService.getAll());
         } catch (err) {
-            toast.error('Ошибка загрузки тикетов');
+            toast.error(getErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -111,7 +112,7 @@ const TicketList: React.FC = () => {
             await loadTickets();
             toast.success('Тикет взят в работу');
         } catch (err) {
-            toast.error('Ошибка при взятии тикета');
+            toast.error(getErrorMessage(err));
         }
     };
 
