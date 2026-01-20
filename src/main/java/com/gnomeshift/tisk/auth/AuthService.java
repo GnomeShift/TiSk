@@ -47,7 +47,7 @@ public class AuthService {
                 .phoneNumber(registerDTO.getPhoneNumber())
                 .department(registerDTO.getDepartment())
                 .position(registerDTO.getPosition())
-                .role(UserRole.USER)
+                .role(userRepository.count() == 0 ? UserRole.ADMIN : UserRole.USER)
                 .status(UserStatus.ACTIVE)
                 .lastLoginAt(LocalDateTime.now())
                 .build();
