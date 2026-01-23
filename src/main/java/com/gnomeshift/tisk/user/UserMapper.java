@@ -13,7 +13,6 @@ import java.util.List;
 )
 public interface UserMapper {
     UserDTO toDto(User user);
-
     List<UserDTO> toDtoList(List<User> users);
 
     @Mapping(target = "id", ignore = true)
@@ -27,6 +26,8 @@ public interface UserMapper {
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "role", ignore = true)
+    @Mapping(target = "status", ignore = true)
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
