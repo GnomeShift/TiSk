@@ -5,9 +5,7 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +30,6 @@ public class AuthService {
         if (userRepository.existsByEmail(registerDTO.getEmail())) {
             throw new ValidationException("Email already registered");
         }
-
         if (registerDTO.getLogin() != null && userRepository.existsByLogin(registerDTO.getLogin())) {
             throw new ValidationException("Login already taken");
         }
@@ -54,71 +51,71 @@ public class AuthService {
 
         User savedUser = userRepository.save(user);
         log.info("User registered successfully with id: {}", savedUser.getId());
-
-        String accessToken = jwtService.generateAccessToken(savedUser);
-        String refreshToken = jwtService.generateRefreshToken(savedUser);
-
-        return AuthResponseDTO.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .tokenType("Bearer")
-                .expiresIn(jwtProperties.getAccessTokenExpiration())
-                .user(userMapper.toDto(savedUser))
-                .build();
+        return buildAuthResponse(savedUser);
     }
 
     public AuthResponseDTO login(LoginDTO loginDTO) {
-        log.info("User login attempt with email: {}", loginDTO.getEmail());
+        String userEmail = loginDTO.getEmail();
+
+        log.info("Login attempt with email: {}", userEmail);
 
         try {
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(loginDTO.getEmail(), loginDTO.getPassword())
+                    new UsernamePasswordAuthenticationToken(userEmail, loginDTO.getPassword())
             );
         }
         catch (BadCredentialsException e) {
             throw new BadCredentialsException("Invalid credentials");
         }
-
-        User user = userRepository.findByEmail(loginDTO.getEmail())
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
-
-        if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new ValidationException("User account isn't active");
+        catch (DisabledException e) {
+            throw new DisabledException("User account isn't active");
         }
 
-        String accessToken = jwtService.generateAccessToken(user);
-        String refreshToken = jwtService.generateRefreshToken(user);
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + userEmail));
 
         user.setLastLoginAt(LocalDateTime.now());
         userRepository.save(user);
         log.info("User logged in successfully: {}", user.getId());
+        return buildAuthResponse(user);
+    }
+
+    public AuthResponseDTO refreshToken(RefreshTokenDTO refreshTokenDTO) {
+        String dtoToken = refreshTokenDTO.getRefreshToken();
+        String userEmail = jwtService.extractEmail(dtoToken);
+
+        if (!jwtService.isRefreshToken(dtoToken)) {
+            throw new BadCredentialsException("Token isn't a refresh token");
+        }
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + userEmail));
+
+        // Check status
+        if (!user.isEnabled()) {
+            throw new DisabledException("User account isn't active");
+        }
+        if (!user.isAccountNonLocked()) {
+            throw new LockedException("User account is locked");
+        }
+
+        // Token validation
+        if (!jwtService.isTokenValid(dtoToken, user)) {
+            throw new BadCredentialsException("Invalid refresh token");
+        }
+
+        // Token rotation
+        log.info("Rotating tokens for user: {}", user.getId());
+        return buildAuthResponse(user);
+    }
+
+    private AuthResponseDTO buildAuthResponse(User user) {
+        String accessToken = jwtService.generateAccessToken(user);
+        String refreshToken = jwtService.generateRefreshToken(user);
 
         return AuthResponseDTO.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
-                .tokenType("Bearer")
-                .expiresIn(jwtProperties.getAccessTokenExpiration())
-                .user(userMapper.toDto(user))
-                .build();
-    }
-
-    public AuthResponseDTO refreshToken(RefreshTokenDTO refreshTokenDTO) {
-        log.info("Refreshing access token...");
-        String userEmail = jwtService.extractEmail(refreshTokenDTO.getRefreshToken());
-
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
-
-        if (!jwtService.isTokenValid(refreshTokenDTO.getRefreshToken(), user)) {
-            throw new BadCredentialsException("Invalid refresh token");
-        }
-
-        String newAccessToken = jwtService.generateAccessToken(user);
-        log.info("Access token refreshed for user: {}", user.getId());
-
-        return AuthResponseDTO.builder()
-                .accessToken(newAccessToken)
-                .refreshToken(refreshTokenDTO.getRefreshToken())
                 .tokenType("Bearer")
                 .expiresIn(jwtProperties.getAccessTokenExpiration())
                 .user(userMapper.toDto(user))
