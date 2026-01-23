@@ -30,7 +30,7 @@ public class TicketService {
         }
 
         log.warn("Current user not found");
-        throw new AccessDeniedException("Authentication required");
+        throw new EntityNotFoundException("User not found");
     }
 
     private boolean isStaff(User user) {

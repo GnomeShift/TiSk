@@ -31,7 +31,7 @@ public class UserService {
         }
 
         log.warn("Current user not found");
-        throw new AccessDeniedException("Authentication required");
+        throw new EntityNotFoundException("User not found");
     }
 
     private boolean isAdmin(User user) {

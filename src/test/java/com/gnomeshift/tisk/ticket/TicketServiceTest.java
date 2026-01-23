@@ -13,6 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
@@ -37,12 +39,16 @@ class TicketServiceTest {
     @Mock
     private TicketMapper ticketMapper;
 
+    @Mock
+    private Authentication authentication;
+
     @InjectMocks
     private TicketService ticketService;
 
     private Ticket testTicket;
     private TicketDTO testTicketDTO;
     private User testUser;
+    private User testAdmin;
     private User testAssignee;
     private CreateTicketDTO createTicketDTO;
     private UpdateTicketDTO updateTicketDTO;
@@ -57,6 +63,19 @@ class TicketServiceTest {
                 .lastName("User")
                 .login("testuser")
                 .role(UserRole.USER)
+                .status(UserStatus.ACTIVE)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        testAdmin = User.builder()
+                .id(UUID.randomUUID())
+                .email("admin@example.com")
+                .password("password")
+                .firstName("Admin")
+                .lastName("User")
+                .login("adminuser")
+                .role(UserRole.ADMIN)
                 .status(UserStatus.ACTIVE)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
@@ -138,15 +157,58 @@ class TicketServiceTest {
     @DisplayName("Get ticket by ID Tests")
     class GetTicketByIdTests {
         @Test
-        @DisplayName("Return ticket by id")
-        void shouldReturnTicketById() {
+        @DisplayName("Return ticket by id when user is reporter")
+        void shouldReturnTicketByIdWhenUserIsReporter() {
+            when(authentication.getPrincipal()).thenReturn(testUser);
             when(ticketRepository.findById(any(UUID.class))).thenReturn(Optional.of(testTicket));
             when(ticketMapper.toDto(any(Ticket.class))).thenReturn(testTicketDTO);
 
-            TicketDTO result = ticketService.getTicketById(testTicket.getId());
+            TicketDTO result = ticketService.getTicketById(testTicket.getId(), authentication);
 
             assertThat(result).isNotNull();
             assertThat(result.getTitle()).isEqualTo("Test Ticket");
+        }
+
+        @Test
+        @DisplayName("Return ticket by id when user is staff")
+        void shouldReturnTicketByIdWhenUserIsStaff() {
+            when(authentication.getPrincipal()).thenReturn(testAdmin);
+            when(ticketRepository.findById(any(UUID.class))).thenReturn(Optional.of(testTicket));
+            when(ticketMapper.toDto(any(Ticket.class))).thenReturn(testTicketDTO);
+
+            TicketDTO result = ticketService.getTicketById(testTicket.getId(), authentication);
+
+            assertThat(result).isNotNull();
+        }
+
+        @Test
+        @DisplayName("Return ticket by id when user is assignee")
+        void shouldReturnTicketByIdWhenUserIsAssignee() {
+            testTicket.setAssignee(testAssignee);
+            User assigneeAsUser = User.builder()
+                    .id(testAssignee.getId())
+                    .role(UserRole.USER)
+                    .build();
+
+            when(authentication.getPrincipal()).thenReturn(assigneeAsUser);
+            when(ticketRepository.findById(any(UUID.class))).thenReturn(Optional.of(testTicket));
+            when(ticketMapper.toDto(any(Ticket.class))).thenReturn(testTicketDTO);
+
+            TicketDTO result = ticketService.getTicketById(testTicket.getId(), authentication);
+
+            assertThat(result).isNotNull();
+        }
+
+        @Test
+        @DisplayName("Throw AccessDeniedException when user is not owner/assignee/staff")
+        void shouldThrowAccessDenied() {
+            User otherUser = User.builder().id(UUID.randomUUID()).role(UserRole.USER).build();
+            when(authentication.getPrincipal()).thenReturn(otherUser);
+            when(ticketRepository.findById(any(UUID.class))).thenReturn(Optional.of(testTicket));
+
+            assertThatThrownBy(() -> ticketService.getTicketById(testTicket.getId(), authentication))
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessage("Access Denied");
         }
 
         @Test
@@ -154,7 +216,7 @@ class TicketServiceTest {
         void shouldThrowExceptionWhenTicketNotFound() {
             when(ticketRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> ticketService.getTicketById(UUID.randomUUID()))
+            assertThatThrownBy(() -> ticketService.getTicketById(UUID.randomUUID(), authentication))
                     .isInstanceOf(EntityNotFoundException.class)
                     .hasMessageContaining("Ticket not found");
         }
@@ -164,24 +226,38 @@ class TicketServiceTest {
     @DisplayName("Get my tickets Tests")
     class GetMyTicketsTests {
         @Test
-        @DisplayName("Return tickets by reporter email")
-        void shouldReturnTicketsByReporterEmail() {
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-            when(ticketRepository.findAllByReporter(any(User.class))).thenReturn(List.of(testTicket));
+        @DisplayName("Return tickets for current user")
+        void shouldReturnTicketsForCurrentUser() {
+            when(authentication.getPrincipal()).thenReturn(testUser);
+            when(ticketRepository.findAllByReporter(testUser)).thenReturn(List.of(testTicket));
             when(ticketMapper.toDtoList(anyList())).thenReturn(List.of(testTicketDTO));
 
-            List<TicketDTO> result = ticketService.getMyTickets("user@example.com");
+            List<TicketDTO> result = ticketService.getMyTickets(authentication);
 
             assertThat(result).hasSize(1);
+            verify(ticketRepository).findAllByReporter(testUser);
         }
 
         @Test
-        @DisplayName("Throw exception when user not found")
-        void shouldThrowExceptionWhenUserNotFound() {
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+        @DisplayName("Return empty list when user has no tickets")
+        void shouldReturnEmptyListWhenUserHasNoTickets() {
+            when(authentication.getPrincipal()).thenReturn(testUser);
+            when(ticketRepository.findAllByReporter(testUser)).thenReturn(List.of());
+            when(ticketMapper.toDtoList(anyList())).thenReturn(List.of());
 
-            assertThatThrownBy(() -> ticketService.getMyTickets("notfound@example.com"))
-                    .isInstanceOf(EntityNotFoundException.class);
+            List<TicketDTO> result = ticketService.getMyTickets(authentication);
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Throw exception when authentication principal is not User")
+        void shouldThrowExceptionWhenPrincipalIsNotUser() {
+            when(authentication.getPrincipal()).thenReturn("not-a-user-object");
+
+            assertThatThrownBy(() -> ticketService.getMyTickets(authentication))
+                    .isInstanceOf(EntityNotFoundException.class)
+                    .hasMessage("User not found");
         }
     }
 
@@ -189,28 +265,56 @@ class TicketServiceTest {
     @DisplayName("Create ticket Tests")
     class CreateTicketTests {
         @Test
-        @DisplayName("Create ticket successfully")
-        void shouldCreateTicket() {
-            when(userRepository.findById(any(UUID.class))).thenReturn(Optional.of(testUser));
+        @DisplayName("Create ticket successfully for regular user")
+        void shouldCreateTicketForRegularUser() {
+            when(authentication.getPrincipal()).thenReturn(testUser);
+            when(userRepository.getReferenceById(testUser.getId())).thenReturn(testUser);
             when(ticketMapper.toEntity(any(CreateTicketDTO.class))).thenReturn(testTicket);
             when(ticketRepository.save(any(Ticket.class))).thenReturn(testTicket);
             when(ticketMapper.toDto(any(Ticket.class))).thenReturn(testTicketDTO);
 
-            TicketDTO result = ticketService.createTicket(createTicketDTO);
+            TicketDTO result = ticketService.createTicket(createTicketDTO, authentication);
 
             assertThat(result).isNotNull();
             verify(ticketRepository).save(any(Ticket.class));
+            verify(userRepository).getReferenceById(testUser.getId());
         }
 
         @Test
-        @DisplayName("Throw exception when reporter not found")
-        void shouldThrowExceptionWhenReporterNotFound() {
-            when(userRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+        @DisplayName("Staff can create ticket for another user")
+        void shouldAllowStaffToCreateTicketForAnotherUser() {
+            UUID otherUserId = UUID.randomUUID();
+            User otherUser = User.builder().id(otherUserId).build();
+            createTicketDTO.setReporterId(otherUserId);
 
-            assertThatThrownBy(() -> ticketService.createTicket(createTicketDTO))
-                    .isInstanceOf(EntityNotFoundException.class);
+            when(authentication.getPrincipal()).thenReturn(testAdmin);
+            when(userRepository.getReferenceById(otherUserId)).thenReturn(otherUser);
+            when(ticketMapper.toEntity(any(CreateTicketDTO.class))).thenReturn(testTicket);
+            when(ticketRepository.save(any(Ticket.class))).thenReturn(testTicket);
+            when(ticketMapper.toDto(any(Ticket.class))).thenReturn(testTicketDTO);
 
-            verify(ticketRepository, never()).save(any(Ticket.class));
+            ticketService.createTicket(createTicketDTO, authentication);
+
+            verify(userRepository).getReferenceById(otherUserId);
+        }
+
+        @Test
+        @DisplayName("User cannot create ticket for another user")
+        void shouldNotAllowRegularUserToCreateTicketForAnother() {
+            UUID otherUserId = UUID.randomUUID();
+            createTicketDTO.setReporterId(otherUserId);
+
+            when(authentication.getPrincipal()).thenReturn(testUser);
+            when(userRepository.getReferenceById(testUser.getId())).thenReturn(testUser);
+            when(ticketMapper.toEntity(any(CreateTicketDTO.class))).thenReturn(testTicket);
+            when(ticketRepository.save(any(Ticket.class))).thenReturn(testTicket);
+            when(ticketMapper.toDto(any(Ticket.class))).thenReturn(testTicketDTO);
+
+            ticketService.createTicket(createTicketDTO, authentication);
+
+            // Use current user ID
+            verify(userRepository).getReferenceById(testUser.getId());
+            verify(userRepository, never()).getReferenceById(otherUserId);
         }
     }
 
@@ -218,13 +322,14 @@ class TicketServiceTest {
     @DisplayName("Update ticket Tests")
     class UpdateTicketTests {
         @Test
-        @DisplayName("Update ticket successfully")
-        void shouldUpdateTicket() {
+        @DisplayName("Update ticket successfully by reporter")
+        void shouldUpdateTicketByReporter() {
+            when(authentication.getPrincipal()).thenReturn(testUser);
             when(ticketRepository.findById(any(UUID.class))).thenReturn(Optional.of(testTicket));
             when(ticketRepository.save(any(Ticket.class))).thenReturn(testTicket);
             when(ticketMapper.toDto(any(Ticket.class))).thenReturn(testTicketDTO);
 
-            TicketDTO result = ticketService.updateTicket(testTicket.getId(), updateTicketDTO);
+            TicketDTO result = ticketService.updateTicket(testTicket.getId(), updateTicketDTO, authentication);
 
             assertThat(result).isNotNull();
             verify(ticketMapper).updateTicketFromDto(any(UpdateTicketDTO.class), any(Ticket.class));
@@ -232,18 +337,62 @@ class TicketServiceTest {
         }
 
         @Test
-        @DisplayName("Update reporter when reporterId provided")
-        void shouldUpdateReporterWhenReporterIdProvided() {
-            updateTicketDTO.setReporterId(testUser.getId());
-
+        @DisplayName("Update ticket successfully by staff")
+        void shouldUpdateTicketByStaff() {
+            when(authentication.getPrincipal()).thenReturn(testAdmin);
             when(ticketRepository.findById(any(UUID.class))).thenReturn(Optional.of(testTicket));
-            when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
             when(ticketRepository.save(any(Ticket.class))).thenReturn(testTicket);
             when(ticketMapper.toDto(any(Ticket.class))).thenReturn(testTicketDTO);
 
-            ticketService.updateTicket(testTicket.getId(), updateTicketDTO);
+            TicketDTO result = ticketService.updateTicket(testTicket.getId(), updateTicketDTO, authentication);
 
-            verify(userRepository).findById(testUser.getId());
+            assertThat(result).isNotNull();
+        }
+
+        @Test
+        @DisplayName("Staff can change reporter")
+        void shouldAllowStaffToChangeReporter() {
+            UUID newReporterId = UUID.randomUUID();
+            User newReporter = User.builder().id(newReporterId).build();
+            updateTicketDTO.setReporterId(newReporterId);
+
+            when(authentication.getPrincipal()).thenReturn(testAdmin);
+            when(ticketRepository.findById(any(UUID.class))).thenReturn(Optional.of(testTicket));
+            when(userRepository.getReferenceById(newReporterId)).thenReturn(newReporter);
+            when(ticketRepository.save(any(Ticket.class))).thenReturn(testTicket);
+            when(ticketMapper.toDto(any(Ticket.class))).thenReturn(testTicketDTO);
+
+            ticketService.updateTicket(testTicket.getId(), updateTicketDTO, authentication);
+
+            verify(userRepository).getReferenceById(newReporterId);
+        }
+
+        @Test
+        @DisplayName("User cannot change reporter")
+        void shouldNotAllowRegularUserToChangeReporter() {
+            UUID newReporterId = UUID.randomUUID();
+            updateTicketDTO.setReporterId(newReporterId);
+
+            when(authentication.getPrincipal()).thenReturn(testUser);
+            when(ticketRepository.findById(any(UUID.class))).thenReturn(Optional.of(testTicket));
+            when(ticketRepository.save(any(Ticket.class))).thenReturn(testTicket);
+            when(ticketMapper.toDto(any(Ticket.class))).thenReturn(testTicketDTO);
+
+            ticketService.updateTicket(testTicket.getId(), updateTicketDTO, authentication);
+
+            verify(userRepository, never()).getReferenceById(any(UUID.class));
+        }
+
+        @Test
+        @DisplayName("Throw AccessDenied when user is not authorized")
+        void shouldThrowAccessDeniedWhenNotAuthorized() {
+            User otherUser = User.builder().id(UUID.randomUUID()).role(UserRole.USER).build();
+
+            when(authentication.getPrincipal()).thenReturn(otherUser);
+            when(ticketRepository.findById(any(UUID.class))).thenReturn(Optional.of(testTicket));
+
+            assertThatThrownBy(() -> ticketService.updateTicket(testTicket.getId(), updateTicketDTO, authentication))
+                    .isInstanceOf(AccessDeniedException.class);
         }
 
         @Test
@@ -251,7 +400,7 @@ class TicketServiceTest {
         void shouldThrowExceptionWhenTicketNotFound() {
             when(ticketRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> ticketService.updateTicket(UUID.randomUUID(), updateTicketDTO))
+            assertThatThrownBy(() -> ticketService.updateTicket(UUID.randomUUID(), updateTicketDTO, authentication))
                     .isInstanceOf(EntityNotFoundException.class);
         }
     }
@@ -263,7 +412,7 @@ class TicketServiceTest {
         @DisplayName("Assign ticket to user")
         void shouldAssignTicketToUser() {
             when(ticketRepository.findById(any(UUID.class))).thenReturn(Optional.of(testTicket));
-            when(userRepository.findById(any(UUID.class))).thenReturn(Optional.of(testAssignee));
+            when(userRepository.findById(testAssignee.getId())).thenReturn(Optional.of(testAssignee));
             when(ticketRepository.save(any(Ticket.class))).thenReturn(testTicket);
             when(ticketMapper.toDto(any(Ticket.class))).thenReturn(testTicketDTO);
 
@@ -283,6 +432,7 @@ class TicketServiceTest {
             when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> {
                 Ticket saved = invocation.getArgument(0);
                 assertThat(saved.getStatus()).isEqualTo(TicketStatus.IN_PROGRESS);
+                assertThat(saved.getAssignee()).isEqualTo(testAssignee);
                 return saved;
             });
             when(ticketMapper.toDto(any(Ticket.class))).thenReturn(testTicketDTO);
@@ -293,8 +443,25 @@ class TicketServiceTest {
         }
 
         @Test
-        @DisplayName("Not change status when ticket is not OPEN")
-        void shouldNotChangeStatusWhenTicketIsNotOpen() {
+        @DisplayName("Not change status when ticket is IN_PROGRESS")
+        void shouldNotChangeStatusWhenTicketIsInProgress() {
+            testTicket.setStatus(TicketStatus.IN_PROGRESS);
+
+            when(ticketRepository.findById(any(UUID.class))).thenReturn(Optional.of(testTicket));
+            when(userRepository.findById(any(UUID.class))).thenReturn(Optional.of(testAssignee));
+            when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> {
+                Ticket saved = invocation.getArgument(0);
+                assertThat(saved.getStatus()).isEqualTo(TicketStatus.IN_PROGRESS);
+                return saved;
+            });
+            when(ticketMapper.toDto(any(Ticket.class))).thenReturn(testTicketDTO);
+
+            ticketService.assignTicket(testTicket.getId(), testAssignee.getId());
+        }
+
+        @Test
+        @DisplayName("Not change status when ticket is CLOSED")
+        void shouldNotChangeStatusWhenTicketIsClosed() {
             testTicket.setStatus(TicketStatus.CLOSED);
 
             when(ticketRepository.findById(any(UUID.class))).thenReturn(Optional.of(testTicket));
@@ -315,7 +482,8 @@ class TicketServiceTest {
             when(ticketRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> ticketService.assignTicket(UUID.randomUUID(), testAssignee.getId()))
-                    .isInstanceOf(EntityNotFoundException.class);
+                    .isInstanceOf(EntityNotFoundException.class)
+                    .hasMessageContaining("Ticket not found");
         }
 
         @Test
@@ -325,7 +493,8 @@ class TicketServiceTest {
             when(userRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> ticketService.assignTicket(testTicket.getId(), UUID.randomUUID()))
-                    .isInstanceOf(EntityNotFoundException.class);
+                    .isInstanceOf(EntityNotFoundException.class)
+                    .hasMessageContaining("User not found");
         }
     }
 
@@ -335,8 +504,8 @@ class TicketServiceTest {
         @Test
         @DisplayName("Delete ticket successfully")
         void shouldDeleteTicket() {
-            when(ticketRepository.existsById(any(UUID.class))).thenReturn(true);
-            doNothing().when(ticketRepository).deleteById(any(UUID.class));
+            when(ticketRepository.existsById(testTicket.getId())).thenReturn(true);
+            doNothing().when(ticketRepository).deleteById(testTicket.getId());
 
             assertThatCode(() -> ticketService.deleteTicket(testTicket.getId()))
                     .doesNotThrowAnyException();
@@ -347,10 +516,12 @@ class TicketServiceTest {
         @Test
         @DisplayName("Throw exception when ticket not found")
         void shouldThrowExceptionWhenTicketNotFound() {
-            when(ticketRepository.existsById(any(UUID.class))).thenReturn(false);
+            UUID nonExistentId = UUID.randomUUID();
+            when(ticketRepository.existsById(nonExistentId)).thenReturn(false);
 
-            assertThatThrownBy(() -> ticketService.deleteTicket(UUID.randomUUID()))
-                    .isInstanceOf(EntityNotFoundException.class);
+            assertThatThrownBy(() -> ticketService.deleteTicket(nonExistentId))
+                    .isInstanceOf(EntityNotFoundException.class)
+                    .hasMessageContaining("Ticket not found");
 
             verify(ticketRepository, never()).deleteById(any(UUID.class));
         }
