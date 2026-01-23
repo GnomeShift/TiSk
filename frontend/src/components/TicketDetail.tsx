@@ -210,7 +210,8 @@ const TicketDetail: React.FC = () => {
                                     disabled={assigningId === u.id}
                                     className={cn(
                                         'w-full flex items-center justify-between p-4 rounded-lg border-2 text-left transition-all',
-                                        isCurrent ? 'bg-green-50 border-green-500' : 'bg-muted/50 border-transparent hover:border-primary'
+                                        isCurrent ? 'bg-green-50 border-green-500 dark:bg-green-900/20'
+                                            : 'bg-muted/50 border-transparent hover:border-primary'
                                     )}
                                 >
                                     <div className="flex items-center gap-3 min-w-0 flex-1">
