@@ -4,10 +4,12 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ValidationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -17,6 +19,7 @@ import org.springframework.web.context.request.WebRequest;
 import java.time.LocalDateTime;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ExceptionDetails> resourceNotFoundException(ResourceNotFoundException ex, WebRequest request) {
@@ -40,9 +43,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ExceptionDetails> genericException(RuntimeException ex, WebRequest request) {
+        log.error("Internal Server Error: {}", ex.getMessage());
+
         ExceptionDetails details = new ExceptionDetails(
                 LocalDateTime.now(),
-                ex.getMessage(),
+                "Internal Server Error",
                 request.getDescription(false)
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(details);
@@ -113,6 +118,16 @@ public class GlobalExceptionHandler {
         ExceptionDetails details = new ExceptionDetails(
                 LocalDateTime.now(),
                 ex.getMessage(),
+                request.getDescription(false)
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(details);
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ExceptionDetails> disabledException(WebRequest request) {
+        ExceptionDetails details = new ExceptionDetails(
+                LocalDateTime.now(),
+                "User account isn't active",
                 request.getDescription(false)
         );
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(details);

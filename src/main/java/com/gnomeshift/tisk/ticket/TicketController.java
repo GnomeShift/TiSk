@@ -23,32 +23,34 @@ public class TicketController {
     private final TicketService ticketService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPPORT')")
     public ResponseEntity<List<TicketDTO>> getAllTickets() {
         return ResponseEntity.ok(ticketService.getAllTickets());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TicketDTO> getTicketById(@PathVariable UUID id) {
-        return ResponseEntity.ok(ticketService.getTicketById(id));
+    public ResponseEntity<TicketDTO> getTicketById(@PathVariable UUID id, Authentication authentication) {
+        return ResponseEntity.ok(ticketService.getTicketById(id, authentication));
     }
 
     @GetMapping("/my")
     public ResponseEntity<List<TicketDTO>> getMyTickets(Authentication authentication) {
-        return ResponseEntity.ok(ticketService.getMyTickets(authentication.getName()));
+        return ResponseEntity.ok(ticketService.getMyTickets(authentication));
     }
 
     @PostMapping
-    public ResponseEntity<TicketDTO> createTicket(@Valid @RequestBody CreateTicketDTO createTicketDTO) {
-        TicketDTO createdTicket = ticketService.createTicket(createTicketDTO);
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .location(URI.create("/api/tickets/" + createdTicket.getId()))
+    public ResponseEntity<TicketDTO> createTicket(@Valid @RequestBody CreateTicketDTO createTicketDTO,
+                                                  Authentication authentication) {
+        TicketDTO createdTicket = ticketService.createTicket(createTicketDTO, authentication);
+        return ResponseEntity.status(HttpStatus.CREATED).location(URI.create("/api/tickets/" + createdTicket.getId()))
                 .body(createdTicket);
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<TicketDTO> updateTicket(@PathVariable UUID id, @Valid @RequestBody UpdateTicketDTO updateTicketDTO) {
-        return ResponseEntity.ok(ticketService.updateTicket(id, updateTicketDTO));
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPPORT')")
+    public ResponseEntity<TicketDTO> updateTicket(@PathVariable UUID id, @Valid @RequestBody UpdateTicketDTO updateTicketDTO,
+                                                  Authentication authentication) {
+        return ResponseEntity.ok(ticketService.updateTicket(id, updateTicketDTO, authentication));
     }
 
     @PatchMapping("/{id}/assign")

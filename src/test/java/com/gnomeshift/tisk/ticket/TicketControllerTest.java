@@ -12,6 +12,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -71,7 +72,7 @@ class TicketControllerTest {
     @DisplayName("Get all tickets Tests")
     class GetAllTicketsTests {
         @Test
-        @WithMockUser
+        @WithMockUser(roles = "SUPPORT")
         @DisplayName("Return all tickets")
         void shouldReturnAllTickets() throws Exception {
             when(ticketService.getAllTickets()).thenReturn(List.of(testTicketDTO));
@@ -96,7 +97,7 @@ class TicketControllerTest {
         @WithMockUser
         @DisplayName("Return ticket by id")
         void shouldReturnTicketById() throws Exception {
-            when(ticketService.getTicketById(any(UUID.class))).thenReturn(testTicketDTO);
+            when(ticketService.getTicketById(any(UUID.class), any(Authentication.class))).thenReturn(testTicketDTO);
 
             mockMvc.perform(get("/api/tickets/{id}", testTicketId))
                     .andExpect(status().isOk())
@@ -111,7 +112,7 @@ class TicketControllerTest {
         @WithMockUser(username = "user@example.com")
         @DisplayName("Return current user's tickets")
         void shouldReturnCurrentUsersTickets() throws Exception {
-            when(ticketService.getMyTickets("user@example.com")).thenReturn(List.of(testTicketDTO));
+            when(ticketService.getMyTickets(any(Authentication.class))).thenReturn(List.of(testTicketDTO));
 
             mockMvc.perform(get("/api/tickets/my"))
                     .andExpect(status().isOk())
@@ -132,10 +133,9 @@ class TicketControllerTest {
             createTicketDTO.setPriority(TicketPriority.HIGH);
             createTicketDTO.setReporterId(testUserId);
 
-            when(ticketService.createTicket(any(CreateTicketDTO.class))).thenReturn(testTicketDTO);
+            when(ticketService.createTicket(any(CreateTicketDTO.class), any(Authentication.class))).thenReturn(testTicketDTO);
 
-            mockMvc.perform(post("/api/tickets")
-                            .with(csrf())
+            mockMvc.perform(post("/api/tickets").with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(createTicketDTO)))
                     .andExpect(status().isCreated())
@@ -149,8 +149,7 @@ class TicketControllerTest {
             CreateTicketDTO createTicketDTO = new CreateTicketDTO();
             // Missing required fields
 
-            mockMvc.perform(post("/api/tickets")
-                            .with(csrf())
+            mockMvc.perform(post("/api/tickets").with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(createTicketDTO)))
                     .andExpect(status().isBadRequest());
@@ -161,16 +160,16 @@ class TicketControllerTest {
     @DisplayName("Update ticket Tests")
     class UpdateTicketTests {
         @Test
-        @WithMockUser
+        @WithMockUser(roles = "ADMIN")
         @DisplayName("Update ticket successfully")
         void shouldUpdateTicket() throws Exception {
             UpdateTicketDTO updateTicketDTO = new UpdateTicketDTO();
             updateTicketDTO.setTitle("Updated Title");
 
-            when(ticketService.updateTicket(any(UUID.class), any(UpdateTicketDTO.class))).thenReturn(testTicketDTO);
+            when(ticketService.updateTicket(any(UUID.class), any(UpdateTicketDTO.class), any(Authentication.class)))
+                    .thenReturn(testTicketDTO);
 
-            mockMvc.perform(patch("/api/tickets/{id}", testTicketId)
-                            .with(csrf())
+            mockMvc.perform(patch("/api/tickets/{id}", testTicketId).with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(updateTicketDTO)))
                     .andExpect(status().isOk());
@@ -186,8 +185,7 @@ class TicketControllerTest {
         void shouldAssignTicketForAdmin() throws Exception {
             when(ticketService.assignTicket(any(UUID.class), any(UUID.class))).thenReturn(testTicketDTO);
 
-            mockMvc.perform(patch("/api/tickets/{id}/assign", testTicketId)
-                            .with(csrf())
+            mockMvc.perform(patch("/api/tickets/{id}/assign", testTicketId).with(csrf())
                             .param("assigneeId", testUserId.toString()))
                     .andExpect(status().isOk());
         }
@@ -198,8 +196,7 @@ class TicketControllerTest {
         void shouldAssignTicketForSupport() throws Exception {
             when(ticketService.assignTicket(any(UUID.class), any(UUID.class))).thenReturn(testTicketDTO);
 
-            mockMvc.perform(patch("/api/tickets/{id}/assign", testTicketId)
-                            .with(csrf())
+            mockMvc.perform(patch("/api/tickets/{id}/assign", testTicketId).with(csrf())
                             .param("assigneeId", testUserId.toString()))
                     .andExpect(status().isOk());
         }
@@ -208,8 +205,7 @@ class TicketControllerTest {
         @WithMockUser(roles = "USER")
         @DisplayName("Return forbidden for regular user")
         void shouldReturnForbiddenForRegularUser() throws Exception {
-            mockMvc.perform(patch("/api/tickets/{id}/assign", testTicketId)
-                            .with(csrf())
+            mockMvc.perform(patch("/api/tickets/{id}/assign", testTicketId).with(csrf())
                             .param("assigneeId", testUserId.toString()))
                     .andExpect(status().isForbidden());
         }
@@ -224,8 +220,7 @@ class TicketControllerTest {
         void shouldDeleteTicketForAdmin() throws Exception {
             doNothing().when(ticketService).deleteTicket(any(UUID.class));
 
-            mockMvc.perform(delete("/api/tickets/{id}", testTicketId)
-                            .with(csrf()))
+            mockMvc.perform(delete("/api/tickets/{id}", testTicketId).with(csrf()))
                     .andExpect(status().isNoContent());
         }
 
@@ -233,8 +228,7 @@ class TicketControllerTest {
         @WithMockUser(roles = "USER")
         @DisplayName("Return forbidden for regular user")
         void shouldReturnForbiddenForRegularUser() throws Exception {
-            mockMvc.perform(delete("/api/tickets/{id}", testTicketId)
-                            .with(csrf()))
+            mockMvc.perform(delete("/api/tickets/{id}", testTicketId).with(csrf()))
                     .andExpect(status().isForbidden());
         }
 
@@ -242,8 +236,7 @@ class TicketControllerTest {
         @WithMockUser(roles = "SUPPORT")
         @DisplayName("Return forbidden for support")
         void shouldReturnForbiddenForSupport() throws Exception {
-            mockMvc.perform(delete("/api/tickets/{id}", testTicketId)
-                            .with(csrf()))
+            mockMvc.perform(delete("/api/tickets/{id}", testTicketId).with(csrf()))
                     .andExpect(status().isForbidden());
         }
     }

@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -50,11 +51,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt = authHeader.substring(7);
 
         try {
-            String userEmail = jwtService.extractEmail(jwt);
+            final String userEmail = jwtService.extractEmail(jwt);
 
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+
+                // Check for refresh token instead of access
+                if (!jwtService.isAccessToken(jwt)) {
+                    throw new MalformedJwtException("Refresh token can't be used for authentication");
+                }
+
+                // Get user from DB
                 UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
 
+                // Check status
+                if (!userDetails.isAccountNonLocked()) {
+                    throw new LockedException("User account is locked");
+                }
+
+                // Check signature and expiration
                 if (jwtService.isTokenValid(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
@@ -65,34 +79,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
+            filterChain.doFilter(request, response);
         }
         catch (ExpiredJwtException e) {
             log.warn("JWT token expired: {}", e.getMessage());
             resolver.resolveException(request, response, null, e);
-            return;
         }
         catch (MalformedJwtException e) {
             log.warn("Invalid JWT token: {}", e.getMessage());
             resolver.resolveException(request, response, null, e);
-            return;
         }
         catch (UsernameNotFoundException e) {
             log.warn("User not found: {}", e.getMessage());
             resolver.resolveException(request, response, null, e);
-            return;
         }
         catch (Exception e) {
             log.error("JWT authentication error: {}", e.getMessage());
             resolver.resolveException(request, response, null, e);
-            return;
         }
-
-        filterChain.doFilter(request, response);
     }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/api/auth") || path.startsWith("/error");
+        return path.equals("/api/auth/register")
+                || path.equals("/api/auth/login")
+                || path.equals("/api/auth/refresh")
+                || path.startsWith("/error");
     }
 }

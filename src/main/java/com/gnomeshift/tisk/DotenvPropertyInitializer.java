@@ -14,13 +14,16 @@ public class DotenvPropertyInitializer implements ApplicationContextInitializer<
     public void initialize(ConfigurableApplicationContext applicationContext) {
         ConfigurableEnvironment environment = applicationContext.getEnvironment();
 
-        // Get first active profile
-        String activeProfile = environment.getActiveProfiles()[0];
+        // Get all profiles
+        String[] profiles = environment.getActiveProfiles();
 
         // If profile is undefined - exit
-        if (activeProfile == null || activeProfile.isBlank()) {
+        if (profiles.length == 0) {
             return;
         }
+
+        // Get first active profile
+        String activeProfile = profiles[0];
 
         String dotenvFile = ".env." + activeProfile;
 
