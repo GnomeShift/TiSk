@@ -13,15 +13,22 @@ import { TicketPrioritySelect, TicketStatusSelect } from './ui/entity-select';
 import { SkeletonTicketForm } from './ui/skeleton';
 import { ArrowLeft, Save } from 'lucide-react';
 import { usePermissions } from "../hooks/usePermissions";
+import { RichTextEditor } from './ui/rich-text-editor';
 
 const TicketForm: React.FC = () => {
     const navigate = useNavigate();
     const { id } = useParams();
     const { user } = useAuth();
     const permissions = usePermissions();
-    const { forceValidate, registerFieldError, validateForm } = useFormValidation();
+    const { forceValidate, registerFieldError, validateForm, fieldErrors } = useFormValidation();
 
-    const [formData, setFormData] = useState({ title: '', description: '', status: TicketStatus.OPEN, priority: TicketPriority.LOW });
+    const [formData, setFormData] = useState({
+        title: '',
+        description: '',
+        status: TicketStatus.OPEN,
+        priority: TicketPriority.LOW
+    });
+
     const [loading, setLoading] = useState(false);
     const [initLoading, setInitLoading] = useState(!!id);
 
@@ -34,10 +41,26 @@ const TicketForm: React.FC = () => {
         })).catch((err) => { toast.error(getErrorMessage(err)); navigate('/') }).finally(() => setInitLoading(false));
     }, [id]);
 
+    const MAX_DESCRIPTION_LENGTH = 5000;
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        let isDescriptionValid = true;
+
+        if (!formData.description || formData.description === '<p></p>') {
+            registerFieldError('description', 'Описание обязательно для заполнения');
+            isDescriptionValid = false;
+        }
+        else if (formData.description.length > MAX_DESCRIPTION_LENGTH) {
+            registerFieldError('description', `Максимум ${MAX_DESCRIPTION_LENGTH} символов`);
+            isDescriptionValid = false;
+        } else {
+            registerFieldError('description', '');
+        }
+
         const { isValid } = await validateForm();
-        if (!isValid) return;
+        if (!isValid || !isDescriptionValid) return;
 
         setLoading(true);
         try {
@@ -78,13 +101,28 @@ const TicketForm: React.FC = () => {
                             label="Заголовок"
                             value={formData.title}
                             onChange={e => setFormData({ ...formData, title: e.target.value })}
-                            required disabled={loading} minLength={1} maxLength={255} forceValidate={forceValidate} onValidationChange={registerFieldError} />
-                        <FormInput
-                            type="textarea"
-                            id="description"
-                            name="description"
+                            required
+                            disabled={loading}
+                            minLength={1}
+                            maxLength={255}
+                            forceValidate={forceValidate}
+                            onValidationChange={registerFieldError}
+                        />
+
+                        <RichTextEditor
                             label="Описание"
-                            value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} required rows={5} disabled={loading} minLength={1} forceValidate={forceValidate} onValidationChange={registerFieldError} />
+                            value={formData.description}
+                            onChange={(html) => {
+                                setFormData({ ...formData, description: html });
+                                if (html && html.length <= MAX_DESCRIPTION_LENGTH) {
+                                    registerFieldError('description', '');
+                                }
+                            }}
+                            error={fieldErrors['description']}
+                            disabled={loading}
+                            required
+                            maxLength={MAX_DESCRIPTION_LENGTH}
+                        />
 
                         <div className="grid gap-6 md:grid-cols-2">
                             <div className="space-y-2">

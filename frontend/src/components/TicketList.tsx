@@ -18,6 +18,7 @@ import {Edit, Eye, NotebookText, Plus, Target, Trash2} from 'lucide-react';
 import { Button } from './ui/button';
 import { usePermissions } from '../hooks/usePermissions';
 import { getErrorMessage } from '../services/errorTranslator';
+import { stripHtml } from '../services/utils';
 
 type ViewMode = 'all' | 'reported' | 'assigned' | 'available';
 
@@ -253,7 +254,9 @@ const TicketList: React.FC = () => {
                             </CardHeader>
 
                             <CardContent className="flex-1 pb-3">
-                                <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{t.description}</p>
+                                <p className="text-sm text-muted-foreground line-clamp-2 mb-3 break-words">
+                                    {stripHtml(t.description)}
+                                </p>
 
                                 <div className="flex items-center justify-between mb-3 pb-3 border-b">
                                     <Badge variant={getTicketStatusVariant(t.status)}>{getTicketStatusLabel(t.status)}</Badge>
