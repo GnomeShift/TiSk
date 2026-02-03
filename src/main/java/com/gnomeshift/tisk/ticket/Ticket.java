@@ -35,7 +35,7 @@ public class Ticket {
     private String title;
 
     @NotBlank
-    @Size(min = 1, max = 5000)
+    @Size(min = 1, max = 10000)
     @Column(columnDefinition = "TEXT")
     private String description;
 

@@ -41,7 +41,7 @@ const TicketForm: React.FC = () => {
         })).catch((err) => { toast.error(getErrorMessage(err)); navigate('/') }).finally(() => setInitLoading(false));
     }, [id]);
 
-    const MAX_DESCRIPTION_LENGTH = 5000;
+    const MAX_DESCRIPTION_LENGTH = 10000;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
