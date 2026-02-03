@@ -1,4 +1,5 @@
 import tailwindcssAnimate from 'tailwindcss-animate';
+import tailwindcssTypography from '@tailwindcss/typography'
 
 export default {
     // Enable dark mode via class strategy
@@ -137,5 +138,8 @@ export default {
         },
     },
 
-    plugins: [tailwindcssAnimate],
+    plugins: [
+        tailwindcssAnimate,
+        tailwindcssTypography
+    ],
 };

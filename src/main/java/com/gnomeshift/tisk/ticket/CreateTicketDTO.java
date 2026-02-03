@@ -18,7 +18,7 @@ public class CreateTicketDTO {
     private String title;
 
     @NotBlank(message = "Description required")
-    @Size(min = 1, max = 5000, message = "Description must be between 1 and 5000 characters")
+    @Size(min = 1, max = 10000, message = "Description must be between 1 and 10000 characters")
     private String description;
 
     private TicketStatus status = TicketStatus.OPEN;
