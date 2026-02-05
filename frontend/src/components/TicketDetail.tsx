@@ -37,7 +37,7 @@ const TicketDetail: React.FC = () => {
             ticketService.getById(id).then(setTicket).catch((err) => {
                 toast.error(getErrorMessage(err));
                 navigate('/'); }).finally(() => setLoading(false));
-            if (user?.role === UserRole.ADMIN || user?.role === UserRole.SUPPORT) {
+            if (permissions.isStaff) {
                 userService.getAll().then(data =>
                     setUsers(data.filter(u => (u.role === UserRole.SUPPORT ||
                         u.role === UserRole.ADMIN) && u.status === 'ACTIVE')

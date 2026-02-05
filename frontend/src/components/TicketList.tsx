@@ -38,7 +38,7 @@ const TicketList: React.FC = () => {
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
     useEffect(() => {
-        loadTickets();
+        void loadTickets();
         if (!user) return;
         if (user.role === UserRole.USER) setViewMode('reported');
         else if (user.role === UserRole.SUPPORT) setViewMode('available');
@@ -137,7 +137,7 @@ const TicketList: React.FC = () => {
 
     const tabs = [];
     if (!user) return [];
-    if (user.role === UserRole.ADMIN) {
+    if (permissions.canViewAllTickets) {
         tabs.push(
             { k: 'all', l: 'Все', c: allTickets.length },
             { k: 'available', l: 'Доступные', c: allTickets.filter(t => !t.assignee && t.status !== 'CLOSED').length },
@@ -145,7 +145,7 @@ const TicketList: React.FC = () => {
             { k: 'reported', l: 'Мои', c: allTickets.filter(t => t.reporter?.id === user.id).length }
         );
     }
-    else if (user?.role === UserRole.SUPPORT) {
+    else if (permissions.isSupport) {
         tabs.push(
             { k: 'available', l: 'Доступные', c: allTickets.filter(t => !t.assignee && t.status !== 'CLOSED').length },
             { k: 'assigned', l: 'В работе', c: allTickets.filter(t => t.assignee?.id === user.id).length},
@@ -165,7 +165,7 @@ const TicketList: React.FC = () => {
                 <h2 className="text-2xl font-bold">Список тикетов</h2>
                 <p className="text-muted-foreground">
                     Найдено: <strong className="text-foreground">{filteredAndSortedTickets.length}</strong>
-                    {viewMode === 'all' && user?.role === UserRole.ADMIN && (
+                    {viewMode === 'all' && permissions.isAdmin && (
                         <> из <strong className="text-foreground">{allTickets.length}</strong></>
                     )}
                 </p>

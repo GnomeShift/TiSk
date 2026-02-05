@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
         };
 
-        checkAuth();
+        void checkAuth();
 
         return () => {
             isMounted = false;
