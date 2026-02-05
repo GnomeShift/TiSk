@@ -133,10 +133,14 @@ const TicketDetail: React.FC = () => {
                         <CardContent className="space-y-4">
                             <div className="space-y-1.5">
                                 <span className="text-sm font-medium text-muted-foreground">Статус</span>
-                                {permissions.canChangeTicketStatus ? <TicketStatusSelect value={ticket.status} onChange={handleStatus} /> :
-                                    <Badge variant={getTicketStatusVariant(ticket.status)}>
-                                        {getTicketStatusLabel(ticket.status)}
-                                    </Badge>}
+                                <div>
+                                    {permissions.canChangeTicketStatus
+                                        ? <TicketStatusSelect value={ticket.status} onChange={handleStatus} />
+                                        : <Badge variant={getTicketStatusVariant(ticket.status)}>
+                                            {getTicketStatusLabel(ticket.status)}
+                                        </Badge>
+                                    }
+                                </div>
                             </div>
                             <div className="space-y-1.5">
                                 <span className="text-sm font-medium text-muted-foreground">Приоритет</span>
