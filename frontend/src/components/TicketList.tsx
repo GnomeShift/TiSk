@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { TicketDTO } from '../types/ticket';
 import { ticketService } from '../services/ticketService';
@@ -45,16 +45,20 @@ const TicketList: React.FC = () => {
         else setViewMode('all');
     }, [user]);
 
-    const loadTickets = async () => {
+    const loadTickets = useCallback(async () => {
+        if (!user) return;
         try {
             setLoading(true);
-            setAllTickets(await ticketService.getAll());
+            const tickets = permissions.canViewAllTickets
+                ? await ticketService.getAll()
+                : await ticketService.getMyTickets();
+            setAllTickets(tickets);
         } catch (err) {
             toast.error(getErrorMessage(err));
         } finally {
             setLoading(false);
         }
-    };
+    }, [user, permissions.canViewAllTickets]);
 
     const filteredAndSortedTickets = useMemo(() => {
         if (!user) return [];
