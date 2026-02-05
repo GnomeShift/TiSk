@@ -32,9 +32,34 @@ interface RichTextEditorProps {
     hint?: string;
 }
 
-// Tollbar
-const EditorToolbar = ({ editor, disabled }: { editor: Editor | null, disabled?: boolean }) => {
+interface EditorToolbarProps {
+    editor: Editor | null;
+    disabled?: boolean;
+}
+
+// Toolbar
+const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor, disabled }) => {
+    const [, setUpdateCounter] = useState(0);
+
+    useEffect(() => {
+        if (!editor) return;
+
+        const handleUpdate = () => {
+            setUpdateCounter(c => c + 1);
+        };
+
+        editor.on('selectionUpdate', handleUpdate);
+        editor.on('transaction', handleUpdate);
+
+        return () => {
+            editor.off('selectionUpdate', handleUpdate);
+            editor.off('transaction', handleUpdate);
+        };
+    }, [editor]);
+
     if (!editor) return null;
+
+    const isInTable = editor.isActive('table');
 
     return (
         <div className="border-b bg-muted/20 p-1 flex flex-wrap gap-1 items-center rounded-t-md">
@@ -122,7 +147,7 @@ const EditorToolbar = ({ editor, disabled }: { editor: Editor | null, disabled?:
                     <Button
                         variant="ghost" size="icon-sm" type="button"
                         disabled={disabled}
-                        className={cn(editor.isActive('table') && "bg-muted text-foreground shadow-inner")}
+                        className={cn(isInTable && "bg-muted text-foreground shadow-inner")}
                         title="Таблица"
                     >
                         <TableIcon className="h-4 w-4" />
@@ -134,34 +159,45 @@ const EditorToolbar = ({ editor, disabled }: { editor: Editor | null, disabled?:
                     >
                         <Plus className="mr-2 h-4 w-4" /> Вставить таблицу
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                        onClick={() => editor.chain().focus().addRowAfter().run()} disabled={!editor.can().addRowAfter()}
-                    >
-                        <Rows className="mr-2 h-4 w-4" /> Добавить строку
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                        onClick={() => editor.chain().focus().deleteRow().run()} disabled={!editor.can().deleteRow()}
-                    >
-                        <Trash2 className="mr-2 h-4 w-4" /> Удалить строку
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                        onClick={() => editor.chain().focus().addColumnAfter().run()} disabled={!editor.can().addColumnAfter()}
-                    >
-                        <Columns className="mr-2 h-4 w-4" /> Добавить столбец
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                        onClick={() => editor.chain().focus().deleteColumn().run()} disabled={!editor.can().deleteColumn()}
-                    >
-                        <Trash2 className="mr-2 h-4 w-4" /> Удалить столбец
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                        onClick={() => editor.chain().focus().deleteTable().run()} disabled={!editor.can().deleteTable()} className="text-destructive"
-                    >
-                        <Trash2 className="mr-2 h-4 w-4" /> Удалить таблицу
-                    </DropdownMenuItem>
+
+                    {isInTable && (
+                        <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onClick={() => editor.chain().focus().addRowAfter().run()}
+                                disabled={!editor.can().addRowAfter()}
+                            >
+                                <Rows className="mr-2 h-4 w-4" /> Добавить строку
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => editor.chain().focus().deleteRow().run()}
+                                disabled={!editor.can().deleteRow()}
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" /> Удалить строку
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onClick={() => editor.chain().focus().addColumnAfter().run()}
+                                disabled={!editor.can().addColumnAfter()}
+                            >
+                                <Columns className="mr-2 h-4 w-4" /> Добавить столбец
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => editor.chain().focus().deleteColumn().run()}
+                                disabled={!editor.can().deleteColumn()}
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" /> Удалить столбец
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                                onClick={() => editor.chain().focus().deleteTable().run()}
+                                disabled={!editor.can().deleteTable()}
+                                className="text-destructive"
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" /> Удалить таблицу
+                            </DropdownMenuItem>
+                        </>
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
 
@@ -209,6 +245,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             Underline,
             Table.configure({
                 resizable: true,
+                allowTableNodeSelection: true,
             }),
             TableRow,
             TableHeader,
