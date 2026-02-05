@@ -83,6 +83,11 @@ api.interceptors.response.use(
             }
         }
 
+        // Intercept 401 for token refresh
+        if (error.response?.status !== 401) {
+            return Promise.reject(error);
+        }
+
         // Don't intercept auth endpoints
         const isAuthEndpoint = ['/auth/login', '/auth/register'].some(
             endpoint => originalRequest.url?.endsWith(endpoint)
@@ -97,7 +102,7 @@ api.interceptors.response.use(
             return Promise.reject(error);
         }
 
-        // If request returned 401 - logout
+        // If refresh request failed - logout
         if (originalRequest.url?.includes('/auth/refresh')) {
             triggerLogout();
             return Promise.reject(error);
