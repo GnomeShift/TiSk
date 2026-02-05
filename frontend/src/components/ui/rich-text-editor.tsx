@@ -279,13 +279,32 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     });
 
     useEffect(() => {
-        if (editor && value) {
-            if (value !== editor.getHTML()) {
-                editor.commands.setContent(value);
+        if (editor) editor.setEditable(!disabled);
+    }, [disabled, editor]);
+
+    useEffect(() => {
+        if (!editor) return;
+
+        const currentHTML = editor.getHTML();
+        const isEmpty = editor.isEmpty;
+
+        if (value === '' || value === null || value === undefined) {
+            if (!isEmpty) {
+                editor.commands.clearContent();
+                setCharCount(0);
             }
+            return;
+        }
+
+        if (value !== currentHTML) {
+            editor.commands.setContent(value);
             setCharCount(value.length);
         }
     }, [value, editor]);
+
+    useEffect(() => {
+        if (editor && value) setCharCount(value.length);
+    }, [editor]);
 
     const hasError = !!error;
     const isOverLimit = maxLength ? charCount > maxLength : false;
