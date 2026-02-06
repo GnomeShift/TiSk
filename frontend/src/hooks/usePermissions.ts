@@ -19,6 +19,7 @@ export function usePermissions() {
             // General perms
             canManageUsers: isAdmin,
             canViewStatistics: isAdmin,
+            canViewAllTickets: isStaff,
             canAssignTickets: isAdmin,
             canChangeTicketStatus: isStaff,
             canDeleteTickets: isAdmin,

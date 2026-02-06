@@ -37,7 +37,7 @@ const TicketDetail: React.FC = () => {
             ticketService.getById(id).then(setTicket).catch((err) => {
                 toast.error(getErrorMessage(err));
                 navigate('/'); }).finally(() => setLoading(false));
-            if (user?.role === UserRole.ADMIN || user?.role === UserRole.SUPPORT) {
+            if (permissions.isStaff) {
                 userService.getAll().then(data =>
                     setUsers(data.filter(u => (u.role === UserRole.SUPPORT ||
                         u.role === UserRole.ADMIN) && u.status === 'ACTIVE')
@@ -133,10 +133,14 @@ const TicketDetail: React.FC = () => {
                         <CardContent className="space-y-4">
                             <div className="space-y-1.5">
                                 <span className="text-sm font-medium text-muted-foreground">Статус</span>
-                                {permissions.canChangeTicketStatus ? <TicketStatusSelect value={ticket.status} onChange={handleStatus} /> :
-                                    <Badge variant={getTicketStatusVariant(ticket.status)}>
-                                        {getTicketStatusLabel(ticket.status)}
-                                    </Badge>}
+                                <div>
+                                    {permissions.canChangeTicketStatus
+                                        ? <TicketStatusSelect value={ticket.status} onChange={handleStatus} />
+                                        : <Badge variant={getTicketStatusVariant(ticket.status)}>
+                                            {getTicketStatusLabel(ticket.status)}
+                                        </Badge>
+                                    }
+                                </div>
                             </div>
                             <div className="space-y-1.5">
                                 <span className="text-sm font-medium text-muted-foreground">Приоритет</span>

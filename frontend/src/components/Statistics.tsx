@@ -4,8 +4,6 @@ import { statisticsService } from '../services/statisticsService';
 import { TicketStatisticsDTO, AssigneeStatisticsDTO, PeriodStatisticsDTO } from '../types/statistics';
 import { toast } from '../services/toast';
 import { getTicketStatusColor, cn, getUserInitials, formatTime, formatDate } from '../services/utils';
-import { UserRole } from '../types/user';
-import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -13,6 +11,7 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import { SkeletonStatistics } from './ui/skeleton';
 import { CheckCircle2, Clock, FileText, RefreshCw, TrendingUp, Users, Activity, AlertCircle, Trophy, Medal } from 'lucide-react';
 import { getErrorMessage } from '../services/errorTranslator';
+import { usePermissions } from '../hooks/usePermissions';
 
 type TabType = 'overview' | 'assignees' | 'trends';
 
@@ -75,37 +74,61 @@ const StatCard: React.FC<StatCardProps> = ({
 );
 
 const Statistics: React.FC = () => {
-    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
+    const permissions = usePermissions();
+    const [periodLoading, setPeriodLoading] = useState(false);
     const [allStats, setAllStats] = useState<TicketStatisticsDTO | null>(null);
     const [assigneesStats, setAssigneesStats] = useState<AssigneeStatisticsDTO[]>([]);
     const [periodStats, setPeriodStats] = useState<PeriodStatisticsDTO | null>(null);
     const [selectedPeriod, setSelectedPeriod] = useState<number>(7);
     const [activeTab, setActiveTab] = useState<TabType>('overview');
 
-    const loadStatistics = useCallback(async () => {
+    const loadAllStatistics = useCallback(async () => {
         try {
             setLoading(true);
 
-            const [overall, period] = await Promise.all([
+            const [overall, period, assignees] = await Promise.all([
                 statisticsService.getAllStatistics(),
-                statisticsService.getLastDaysStatistics(selectedPeriod)
+                statisticsService.getLastDaysStatistics(selectedPeriod),
+                permissions.canViewStatistics
+                    ? statisticsService.getAllAssigneesStatistics()
+                    : Promise.resolve([])
             ]);
 
             setAllStats(overall);
             setPeriodStats(period);
-
-            if (user?.role === UserRole.ADMIN) {
-                setAssigneesStats(await statisticsService.getAllAssigneesStatistics());
-            }
+            setAssigneesStats(assignees);
         } catch (err) {
             toast.error(getErrorMessage(err));
         } finally {
             setLoading(false);
         }
-    }, [selectedPeriod, user?.role]);
+    }, [selectedPeriod, permissions.canViewStatistics]);
 
-    useEffect(() => { loadStatistics(); }, [loadStatistics]);
+    const handleRefresh = useCallback(() => {
+        void loadAllStatistics();
+    }, [loadAllStatistics]);
+
+    const loadPeriodStatistics = useCallback(async (days: number) => {
+        try {
+            setPeriodLoading(true);
+            const period = await statisticsService.getLastDaysStatistics(days);
+            setPeriodStats(period);
+        } catch (err) {
+            toast.error(getErrorMessage(err));
+        } finally {
+            setPeriodLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        void loadAllStatistics();
+    }, []);
+
+    const handlePeriodChange = useCallback((days: number) => {
+        setSelectedPeriod(days);
+        void loadPeriodStatistics(days);
+    }, [loadPeriodStatistics]);
 
     const statusData = useMemo(() => {
         if (!allStats) return [];
@@ -127,7 +150,7 @@ const Statistics: React.FC = () => {
     }, [periodStats]);
 
     // Top assignees calculation
-    const topPerformers = useMemo(() => {
+    const topAssignees = useMemo(() => {
         return [...assigneesStats]
             .sort((a, b) => b.closedTickets - a.closedTickets)
             .slice(0, 5);
@@ -159,7 +182,7 @@ const Statistics: React.FC = () => {
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Статистика</h2>
                 </div>
-                <Button variant="outline" size="default" onClick={() => loadStatistics()} disabled={loading}>
+                <Button variant="outline" size="default" onClick={handleRefresh} disabled={loading}>
                     <RefreshCw className={cn('w-3.5 h-3.5 mr-2', loading && 'animate-spin')} />
                     Обновить
                 </Button>
@@ -341,7 +364,8 @@ const Statistics: React.FC = () => {
                                         key={days}
                                         variant={selectedPeriod === days ? 'default' : 'ghost'}
                                         size="sm"
-                                        onClick={() => setSelectedPeriod(days)}
+                                        onClick={() => handlePeriodChange(days)}
+                                        disabled={periodLoading}
                                         className="h-7 text-xs px-3"
                                     >
                                         {label}
@@ -538,7 +562,7 @@ const Statistics: React.FC = () => {
                             </CardHeader>
                             <CardContent className="pt-6">
                                 <div className="space-y-6">
-                                    {topPerformers.map((a, i) => {
+                                    {topAssignees.map((a, i) => {
                                         let medalColor = "text-muted-foreground";
                                         let rankBg = "bg-muted";
 

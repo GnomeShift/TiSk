@@ -215,7 +215,7 @@ const UserManagement: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
-    useEffect(() => { loadUsers(); setCurrentPage(1) }, []);
+    useEffect(() => { void loadUsers(); setCurrentPage(1) }, []);
 
     const loadUsers = async () => {
         try {
