@@ -63,14 +63,32 @@ public class Ticket {
     @NotNull
     private LocalDateTime updatedAt;
 
+    private LocalDateTime closedAt;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+
+        if (this.status == TicketStatus.CLOSED && this.closedAt == null) {
+            this.closedAt = LocalDateTime.now();
+        }
     }
 
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updateStatusWithClosedAt(TicketStatus newStatus) {
+        TicketStatus oldStatus = this.status;
+        this.status = newStatus;
+
+        if (newStatus == TicketStatus.CLOSED && oldStatus != TicketStatus.CLOSED) {
+            this.closedAt = LocalDateTime.now();
+        }
+        else if (newStatus != TicketStatus.CLOSED && oldStatus == TicketStatus.CLOSED) {
+            this.closedAt = null;
+        }
     }
 }

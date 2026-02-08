@@ -115,6 +115,11 @@ public class TicketService {
 
         User currentUser = getCurrentUser(authentication);
         checkAccess(ticket, currentUser);
+
+        if (updateTicketDTO.getStatus() != null && updateTicketDTO.getStatus() != ticket.getStatus()) {
+            ticket.updateStatusWithClosedAt(updateTicketDTO.getStatus());
+        }
+
         ticketMapper.updateTicketFromDto(updateTicketDTO, ticket);
 
         // Staff can change reporter
@@ -140,7 +145,7 @@ public class TicketService {
         ticket.setAssignee(assignee);
 
         if (ticket.getStatus() == TicketStatus.OPEN) {
-            ticket.setStatus(TicketStatus.IN_PROGRESS);
+            ticket.updateStatusWithClosedAt(TicketStatus.IN_PROGRESS);
         }
 
         log.info("Ticket assigned successfully: {}", id);

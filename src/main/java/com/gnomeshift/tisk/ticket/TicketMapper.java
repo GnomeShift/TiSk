@@ -18,6 +18,7 @@ public interface TicketMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "closedAt", ignore = true)
     @Mapping(target = "reporter", ignore = true)
     @Mapping(target = "assignee", ignore = true)
     @Mapping(target = "status", constant = "OPEN")
@@ -27,7 +28,9 @@ public interface TicketMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "closedAt", ignore = true)
     @Mapping(target = "reporter", ignore = true)
     @Mapping(target = "assignee", ignore = true)
+    @Mapping(target = "status", ignore = true)
     void updateTicketFromDto(UpdateTicketDTO dto, @MappingTarget Ticket ticket);
 }

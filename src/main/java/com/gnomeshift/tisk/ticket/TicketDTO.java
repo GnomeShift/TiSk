@@ -20,4 +20,5 @@ public class TicketDTO {
     private UserDTO assignee;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private LocalDateTime closedAt;
 }
