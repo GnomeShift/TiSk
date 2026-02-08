@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { TicketDTO, TicketStatus } from '../types/ticket';
 import { ticketService } from '../services/ticketService';
@@ -47,34 +47,48 @@ const TicketDetail: React.FC = () => {
         }
     }, [id, user]);
 
-    const handleStatus = async (status: string) => {
-        if (ticket) setTicket(await ticketService.update(ticket.id, {
-            ...ticket,
-            status: status as TicketStatus,
-            reporterId: ticket.reporter?.id
-        }));
-        toast.success(`Статус изменен на "${getTicketStatusLabel(status as string)}"`);
-    };
+    const handleStatus = useCallback(async (status: string) => {
+        if (!ticket) return;
 
-    const handleAssign = async (assigneeId: string) => {
+        try {
+            setTicket(await ticketService.update(ticket.id, {
+                ...ticket,
+                status: status as TicketStatus,
+                reporterId: ticket.reporter?.id
+            }));
+            toast.success(`Статус изменен на "${getTicketStatusLabel(status)}"`);
+        } catch (err) {
+            toast.error(getErrorMessage(err));
+        }
+    }, [ticket]);
+
+    const handleAssign = useCallback(async (assigneeId: string) => {
         if (!ticket) return;
         setAssigningId(assigneeId);
         try {
             setTicket(await ticketService.assignTicket(ticket.id, assigneeId));
             setShowAssignModal(false);
             toast.success('Тикет назначен');
+        } catch (err) {
+            toast.error(getErrorMessage(err));
         } finally {
             setAssigningId(null);
         }
-    };
+    }, [ticket]);
 
-    const handleDelete = async () => {
-        if (ticket && await deleteConfirm(`тикет "${ticket.title}"`)) {
-            await ticketService.delete(ticket.id);
-            toast.success('Тикет удален');
-            navigate('/');
+    const handleDelete = useCallback(async () => {
+        if (!ticket) return;
+
+        try {
+            if (await deleteConfirm(`тикет "${ticket.title}"`)) {
+                await ticketService.delete(ticket.id);
+                toast.success('Тикет удален');
+                navigate('/');
+            }
+        } catch (err) {
+            toast.error(getErrorMessage(err));
         }
-    };
+    }, [ticket, deleteConfirm, navigate]);
 
     if (loading) return <SkeletonTicketDetail />;
     if (!ticket) return null;
