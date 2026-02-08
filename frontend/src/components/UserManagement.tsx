@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { UserDTO, UserRole, UserStatus, CreateUserDTO } from '../types/user';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { UserDTO, UserRole, UserStatus, CreateUserDTO, UpdateUserDTO } from '../types/user';
 import { userService } from '../services/userService';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from '../services/toast';
@@ -45,7 +45,7 @@ const UserFormModal: React.FC<{
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const { isValid } = await validateForm();
+        const { isValid } = validateForm();
         if (!isValid) return;
         setLoading(true);
         try {
@@ -117,7 +117,8 @@ const UserFormModal: React.FC<{
                             name="login"
                             label="Логин"
                             value={formData.login || ''}
-                            onChange={handleChange} required
+                            onChange={handleChange}
+                            required
                             disabled={loading}
                             minLength={3}
                             rules={[validationRules.login()]}
@@ -131,7 +132,8 @@ const UserFormModal: React.FC<{
                                 label="Пароль"
                                 value={formData.password || ''}
                                 onChange={handleChange}
-                                required disabled={loading}
+                                required
+                                disabled={loading}
                                 forceValidate={forceValidate}
                                 onValidationChange={registerFieldError}
                             />
@@ -152,8 +154,8 @@ const UserFormModal: React.FC<{
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Роль</label>
                             <UserRoleSelect
-                                value={formData.role!}
-                                onChange={v => setField('role', v)}
+                                value={formData.role || UserRole.USER}
+                                onChange={v => setField('role', v as UserRole)}
                                 disabled={loading}
                             />
                         </div>
@@ -182,8 +184,8 @@ const UserFormModal: React.FC<{
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Статус</label>
                             <UserStatusSelect
-                                value={formData.status!}
-                                onChange={v => setField('status', v)}
+                                value={formData.status || UserStatus.ACTIVE}
+                                onChange={v => setField('status', v as UserStatus)}
                                 disabled={loading}
                             />
                         </div>
@@ -228,32 +230,42 @@ const UserManagement: React.FC = () => {
         }
     };
 
+    useEffect(() => { void loadUsers() }, [currentPage, filters.sortBy, filters.sortOrder]);
+
     const handleSave = async (data: any) => {
         if (modalState.user) {
-            await userService.update(modalState.user.id, data);
+            await userService.update(modalState.user.id, data as UpdateUserDTO);
             toast.success('Пользователь обновлен');
         } else {
-            await userService.create(data);
+            await userService.create(data as CreateUserDTO);
             toast.success('Пользователь создан');
         }
         await loadUsers();
     };
 
     const handleAction = async (action: 'delete' | 'status', user: UserDTO) => {
-        if (user.id === currentUser?.id) return toast.info('Нельзя изменить свой аккаунт');
-        if (action === 'delete') {
-            if (await deleteConfirm(`пользователя "${user.firstName} ${user.lastName}"`)) {
-                await userService.delete(user.id);
-                toast.success('Пользователь удален');
-                await loadUsers();
+        if (user.id === currentUser?.id) {
+            toast.info('Нельзя изменить свой аккаунт');
+            return;
+        }
+
+        try {
+            if (action === 'delete') {
+                if (await deleteConfirm(`пользователя "${user.firstName} ${user.lastName}"`)) {
+                    await userService.delete(user.id);
+                    toast.success('Пользователь удален');
+                    await loadUsers();
+                }
+            } else {
+                const newStatus = user.status === UserStatus.ACTIVE ? UserStatus.SUSPENDED : UserStatus.ACTIVE;
+                if (await blockConfirm(`${user.firstName} ${user.lastName}`, newStatus)) {
+                    await userService.changeStatus(user.id, newStatus);
+                    toast.success('Статус пользователя изменен');
+                    await loadUsers();
+                }
             }
-        } else {
-            const newStatus = user.status === UserStatus.ACTIVE ? UserStatus.SUSPENDED : UserStatus.ACTIVE;
-            if (await blockConfirm(`${user.firstName} ${user.lastName}`, newStatus)) {
-                await userService.changeStatus(user.id, newStatus);
-                toast.success('Статус пользователя изменен');
-                await loadUsers();
-            }
+        } catch (err) {
+            toast.error(getErrorMessage(err));
         }
     };
 
@@ -265,14 +277,12 @@ const UserManagement: React.FC = () => {
         }
         if (filters.role !== 'ALL') res = res.filter(u => u.role === filters.role);
         if (filters.status !== 'ALL') res = res.filter(u => u.status === filters.status);
-
-        return res.sort((a: any, b: any) => {
-            const v1 = a[filters.sortBy], v2 = b[filters.sortBy];
-            return filters.sortOrder === 'asc' ? (v1 > v2 ? 1 : -1) : (v2 > v1 ? 1 : -1);
-        });
+        return res;
     }, [users, filters]);
 
-    const paginated = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    const paginated = useMemo(() => filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+        [filteredUsers, currentPage, itemsPerPage]
+    );
 
     const columns = [
         { label: 'Имя', key: 'firstName' },
@@ -286,7 +296,7 @@ const UserManagement: React.FC = () => {
         { label: 'Действия', key: null }
     ];
 
-    const handleSort = (key: string | null) => {
+    const handleSort = useCallback((key: string | null) => {
         if (!key) return;
 
         setFilters(prev => ({
@@ -294,7 +304,11 @@ const UserManagement: React.FC = () => {
             sortBy: key,
             sortOrder: prev.sortBy === key && prev.sortOrder === 'asc' ? 'desc' : 'asc'
         }));
-    };
+    }, []);
+
+    const handleResetFilters = useCallback(() => {
+        setFilters({ search: '', role: 'ALL', status: 'ALL', sortBy: 'createdAt', sortOrder: 'desc' });
+    }, []);
 
     if (loading) return <SkeletonUserManagement />;
 
@@ -318,16 +332,13 @@ const UserManagement: React.FC = () => {
                             <Input
                                 placeholder="Поиск..."
                                 value={filters.search}
-                                onChange={e => setFilters({...filters, search: e.target.value})}
+                                onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
                                 className="pl-10"
                             />
                         </div>
-                        <UserRoleSelect value={filters.role} onChange={v => setFilters({...filters, role: v})} includeAll />
-                        <UserStatusSelect value={filters.status} onChange={v => setFilters({...filters, status: v})} includeAll />
-                        <Button
-                            variant="secondary"
-                            onClick={() => setFilters({ search: '', role: 'ALL', status: 'ALL', sortBy: 'createdAt', sortOrder: 'desc' })}
-                        >
+                        <UserRoleSelect value={filters.role} onChange={v => setFilters(prev => ({ ...prev, role: v}))} includeAll />
+                        <UserStatusSelect value={filters.status} onChange={v => setFilters(prev => ({ ...prev, status: v}))} includeAll />
+                        <Button variant="secondary" onClick={handleResetFilters}>
                             <RotateCcw className="mr-2 h-4 w-4" />
                             Сбросить
                         </Button>
@@ -365,8 +376,7 @@ const UserManagement: React.FC = () => {
                                                 <ArrowUpDown
                                                     className={`h-3 w-3 transition-colors ${
                                                         filters.sortBy === col.key ? 'text-primary' : 'text-muted-foreground'
-                                                    }`
-                                                }
+                                                    }`}
                                                 />
                                             )}
                                         </div>
@@ -375,51 +385,52 @@ const UserManagement: React.FC = () => {
                             </tr>
                             </thead>
                             <tbody>
-                                {paginated.map(u => (
-                                    <tr key={u.id} className="border-b hover:bg-muted/30">
-                                        <td className="px-4 py-3 font-medium truncate max-w-[150px]">{u.firstName} {u.lastName}</td>
-                                        <td className="px-4 py-3 text-sm truncate max-w-[200px]">{u.email}</td>
-                                        <td className="px-4 py-3 text-sm truncate max-w-[100px]">{u.login}</td>
-                                        <td className="px-4 py-3">
-                                            <Badge variant={getUserRoleVariant(u.role)}>
-                                                {getUserRoleLabel(u.role)}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <Badge variant={getUserStatusVariant(u.status)}>
-                                                {getUserStatusLabel(u.status)}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm">{u.phoneNumber || '—'}</td>
-                                        <td className="px-4 py-3 text-sm truncate max-w-[120px]">{u.department || '—'}</td>
-                                        <td className="px-4 py-3 text-sm">{formatDate(u.createdAt)}</td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex gap-1">
-                                                <Button variant="ghost" size="icon-sm" onClick={() => setModalState({ isOpen: true, user: u })}>
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost" size="icon-sm"
-                                                    onClick={() => handleAction('status', u)}
-                                                    disabled={u.id === currentUser?.id}
-                                                >
-                                                    {u.status === UserStatus.ACTIVE
-                                                        ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />
-                                                    }
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon-sm"
-                                                    onClick={() => handleAction('delete', u)}
-                                                    className="text-destructive"
-                                                    disabled={u.id === currentUser?.id}
-                                                >
-                                                    <Trash2 className="h-4 w-4"/>
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                            {paginated.map(u => (
+                                <tr key={u.id} className="border-b hover:bg-muted/30">
+                                    <td className="px-4 py-3 font-medium truncate max-w-[150px]">{u.firstName} {u.lastName}</td>
+                                    <td className="px-4 py-3 text-sm truncate max-w-[200px]">{u.email}</td>
+                                    <td className="px-4 py-3 text-sm truncate max-w-[100px]">{u.login}</td>
+                                    <td className="px-4 py-3">
+                                        <Badge variant={getUserRoleVariant(u.role)}>
+                                            {getUserRoleLabel(u.role)}
+                                        </Badge>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <Badge variant={getUserStatusVariant(u.status)}>
+                                            {getUserStatusLabel(u.status)}
+                                        </Badge>
+                                    </td>
+                                    <td className="px-4 py-3 text-sm">{u.phoneNumber || '—'}</td>
+                                    <td className="px-4 py-3 text-sm truncate max-w-[120px]">{u.department || '—'}</td>
+                                    <td className="px-4 py-3 text-sm">{formatDate(u.createdAt)}</td>
+                                    <td className="px-4 py-3">
+                                        <div className="flex gap-1">
+                                            <Button variant="ghost" size="icon-sm" onClick={() => setModalState({ isOpen: true, user: u })}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                onClick={() => handleAction('status', u)}
+                                                disabled={u.id === currentUser?.id}
+                                            >
+                                                {u.status === UserStatus.ACTIVE
+                                                    ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />
+                                                }
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                onClick={() => handleAction('delete', u)}
+                                                className="text-destructive"
+                                                disabled={u.id === currentUser?.id}
+                                            >
+                                                <Trash2 className="h-4 w-4"/>
+                                            </Button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
                             </tbody>
                         </table>
                     </div>

@@ -1,18 +1,14 @@
-import React, { useState, useMemo, useEffect, forwardRef, useImperativeHandle, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { cn } from '../services/utils';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Eye, EyeOff, Check, X, Circle, AlertCircle } from 'lucide-react';
+import { useFieldState } from '../hooks/useFieldState';
 
 interface PasswordRequirement {
     id: string;
     label: string;
     validate: (value: string) => boolean;
-}
-
-export interface PasswordInputRef {
-    validate: () => string;
-    getValue: () => string;
 }
 
 interface PasswordInputProps {
@@ -28,6 +24,7 @@ interface PasswordInputProps {
     showRequirements?: boolean;
     forceValidate?: number;
     onValidationChange?: (name: string, error: string) => void;
+    registerValidator?: (name: string, validate: () => string) => () => void;
 }
 
 const PASSWORD_REQUIREMENTS: PasswordRequirement[] = [
@@ -45,29 +42,22 @@ const STRENGTH_CONFIG = [
     { min: 4, label: 'Надежный', color: 'bg-success', textColor: 'text-success' }
 ];
 
-const PasswordInput = forwardRef<PasswordInputRef, PasswordInputProps>(({
-                                                                            id,
-                                                                            name,
-                                                                            label,
-                                                                            value,
-                                                                            onChange,
-                                                                            placeholder = '••••••••',
-                                                                            required = false,
-                                                                            disabled = false,
-                                                                            autoComplete,
-                                                                            showRequirements = true,
-                                                                            forceValidate = 0,
-                                                                            onValidationChange
-                                                                        }, ref) => {
-    const [focused, setFocused] = useState(false);
-    const [touched, setTouched] = useState(false);
+const PasswordInput: React.FC<PasswordInputProps> = ({
+                                                         id,
+                                                         name,
+                                                         label,
+                                                         value,
+                                                         onChange,
+                                                         placeholder = '••••••••',
+                                                         required = false,
+                                                         disabled = false,
+                                                         autoComplete,
+                                                         showRequirements = true,
+                                                         forceValidate = 0,
+                                                         onValidationChange,
+                                                         registerValidator
+                                                     }) => {
     const [showPassword, setShowPassword] = useState(false);
-    // Ref for tracking previous forceValidate
-    const prevForceValidateRef = useRef(forceValidate);
-    // Ref for storing callback
-    const onValidationChangeRef = useRef(onValidationChange);
-
-    useEffect(() => { onValidationChangeRef.current = onValidationChange; }, [onValidationChange]);
 
     // Memoize requirements
     const { requirementsStatus, allPassed, passedCount } = useMemo(() => {
@@ -85,49 +75,22 @@ const PasswordInput = forwardRef<PasswordInputRef, PasswordInputProps>(({
     const strengthPercent = (passedCount / PASSWORD_REQUIREMENTS.length) * 100;
     const strengthInfo = STRENGTH_CONFIG[passedCount];
 
-    // Memoize error getter
-    const getError = useCallback((): string => {
-        if (required && !value) return `${label} обязательно для заполнения`;
-        if (value && !allPassed) return 'Пароль не соответствует требованиям';
+    const customValidate = useCallback((val: string): string => {
+        if (!val) return '';
+        if (!PASSWORD_REQUIREMENTS.every(r => r.validate(val))) return 'Пароль не соответствует требованиям';
         return '';
-    }, [required, value, label, allPassed]);
+    }, []);
 
-    // Expose by ref
-    useImperativeHandle(ref, () => ({
-        validate: () => {
-            setTouched(true);
-            return getError();
-        },
-        getValue: () => value
-    }), [getError, value]);
+    const { touched, focused, hasError, isValid, handleBlur: fieldHandleBlur, handleFocus: fieldHandleFocus }
+        = useFieldState(value, { name, required, label, validate: customValidate, onValidationChange, registerValidator, forceValidate });
 
-    // Force validation
-    useEffect(() => {
-        if (forceValidate > 0 && forceValidate !== prevForceValidateRef.current) {
-            prevForceValidateRef.current = forceValidate;
-            setTouched(true);
-            onValidationChangeRef.current?.(name, getError());
-        }
-    }, [forceValidate, getError, name]);
+    const handleBlur = useCallback(() => { fieldHandleBlur() }, [fieldHandleBlur]);
 
-    // Refresh validation on value change
-    useEffect(() => {
-        if (touched) {
-            onValidationChangeRef.current?.(name, getError());
-        }
-    }, [value, touched, getError, name]);
-
-    const handleBlur = useCallback(() => {
-        setFocused(false);
-        setTouched(true);
-        onValidationChangeRef.current?.(name, getError());
-    }, [getError, name]);
+    const handleFocus = useCallback(() => { fieldHandleFocus() }, [fieldHandleFocus]);
 
     // Error states
-    const hasEmptyError = touched && required && !value;
-    const hasRequirementsError = touched && !!value && !allPassed;
-    const hasError = hasEmptyError || hasRequirementsError;
-    const isValid = touched && value && allPassed;
+    const hasEmptyError = hasError && required && !value;
+    const hasRequirementsError = hasError && !!value && !allPassed;
     const showRequirementsList = showRequirements && (focused || hasRequirementsError) && value.length > 0;
 
     return (
@@ -145,7 +108,7 @@ const PasswordInput = forwardRef<PasswordInputRef, PasswordInputProps>(({
                     value={value}
                     onChange={onChange}
                     onBlur={handleBlur}
-                    onFocus={() => setFocused(true)}
+                    onFocus={handleFocus}
                     placeholder={placeholder}
                     disabled={disabled}
                     autoComplete={autoComplete}
@@ -177,7 +140,7 @@ const PasswordInput = forwardRef<PasswordInputRef, PasswordInputProps>(({
             {/* Error message for empty required field */}
             <div className="min-h-[1.25rem]">
                 {hasEmptyError && (
-                    <div className="flex items-center gap-1 text-sm text-destructive">
+                    <div id={`${id}-error`} className="flex items-center gap-1 text-sm text-destructive font-medium" role="alert">
                         <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
                         <span>{label} обязательно для заполнения</span>
                     </div>
@@ -222,7 +185,7 @@ const PasswordInput = forwardRef<PasswordInputRef, PasswordInputProps>(({
             )}
         </div>
     );
-});
+};
 
 PasswordInput.displayName = 'PasswordInput';
 
