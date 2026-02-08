@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { userService } from '../services/userService';
 import { getUserRoleVariant, getUserRoleLabel, formatDate, formatDateTime } from '../services/utils';
@@ -21,6 +21,12 @@ const Profile: React.FC = () => {
     const passwordValidation = useFormValidation();
     const [formData, setFormData] = useState({ ...user });
     const [passwordData, setPasswordData] = useState({currentPassword: '', newPassword: '', confirmPassword: '' });
+
+    useEffect(() => {
+        if (user && !isEditing) {
+            setFormData({ ...user });
+        }
+    }, [user, isEditing]);
 
     if (!user) return <SkeletonProfile />;
 
