@@ -1,5 +1,6 @@
 package com.gnomeshift.tisk.ticket;
 
+import com.gnomeshift.tisk.security.HtmlSanitizer;
 import com.gnomeshift.tisk.user.User;
 import com.gnomeshift.tisk.user.UserRepository;
 import com.gnomeshift.tisk.user.UserRole;
@@ -44,6 +45,9 @@ class TicketServiceTest {
 
     @InjectMocks
     private TicketService ticketService;
+
+    @Mock
+    private HtmlSanitizer htmlSanitizer;
 
     private Ticket testTicket;
     private TicketDTO testTicketDTO;
@@ -272,6 +276,7 @@ class TicketServiceTest {
             when(ticketMapper.toEntity(any(CreateTicketDTO.class))).thenReturn(testTicket);
             when(ticketRepository.save(any(Ticket.class))).thenReturn(testTicket);
             when(ticketMapper.toDto(any(Ticket.class))).thenReturn(testTicketDTO);
+            when(htmlSanitizer.sanitize(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
 
             TicketDTO result = ticketService.createTicket(createTicketDTO, authentication);
 
@@ -292,6 +297,7 @@ class TicketServiceTest {
             when(ticketMapper.toEntity(any(CreateTicketDTO.class))).thenReturn(testTicket);
             when(ticketRepository.save(any(Ticket.class))).thenReturn(testTicket);
             when(ticketMapper.toDto(any(Ticket.class))).thenReturn(testTicketDTO);
+            when(htmlSanitizer.sanitize(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
 
             ticketService.createTicket(createTicketDTO, authentication);
 
@@ -309,6 +315,7 @@ class TicketServiceTest {
             when(ticketMapper.toEntity(any(CreateTicketDTO.class))).thenReturn(testTicket);
             when(ticketRepository.save(any(Ticket.class))).thenReturn(testTicket);
             when(ticketMapper.toDto(any(Ticket.class))).thenReturn(testTicketDTO);
+            when(htmlSanitizer.sanitize(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
 
             ticketService.createTicket(createTicketDTO, authentication);
 
