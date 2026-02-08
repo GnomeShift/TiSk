@@ -9,7 +9,7 @@ public class MetricsConfig {
     @Bean
     public MeterFilter heapOnlyFilter() {
         return MeterFilter.deny(id ->
-                "jwm.memory.used".equals(id.getName()) && !"heap".equals(id.getTag("area"))
+                "jvm.memory.used".equals(id.getName()) && !"heap".equals(id.getTag("area"))
         );
     }
 

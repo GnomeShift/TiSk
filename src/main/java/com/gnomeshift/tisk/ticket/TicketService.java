@@ -127,7 +127,7 @@ public class TicketService {
                 .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
 
         User assignee = userRepository.findById(assigneeId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + assigneeId));
 
         ticket.setAssignee(assignee);
 
