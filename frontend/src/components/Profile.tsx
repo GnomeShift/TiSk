@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { userService } from '../services/userService';
-import { getUserRoleVariant, getUserRoleLabel, formatDate, formatDateTime } from '../services/utils';
+import { getUserRoleVariant, getUserRoleLabel, formatDateTime } from '../services/utils';
 import { useFormValidation } from '../hooks/useFormValidation';
 import FormInput, { validationRules } from './FormInput';
 import PasswordInput from './PasswordInput';
@@ -42,7 +42,7 @@ const Profile: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const { isValid } = await profileValidation.validateForm();
+        const { isValid } = profileValidation.validateForm();
         if (!isValid) return;
         setLoading(true);
 
@@ -59,7 +59,7 @@ const Profile: React.FC = () => {
 
     const handlePasswordSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const { isValid } = await passwordValidation.validateForm();
+        const { isValid } = passwordValidation.validateForm();
         if (!isValid) return;
         setLoading(true);
 
@@ -120,7 +120,7 @@ const Profile: React.FC = () => {
                             </div>
                             <div>
                                 <dt className="text-sm font-medium text-muted-foreground">Регистрация</dt>
-                                <dd>{formatDate(user.createdAt)}</dd>
+                                <dd>{formatDateTime(user.createdAt)}</dd>
                             </div>
                             {user.lastLoginAt &&
                                 <div>
