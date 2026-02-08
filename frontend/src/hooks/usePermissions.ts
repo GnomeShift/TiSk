@@ -6,13 +6,17 @@ import { useMemo } from 'react';
 export function usePermissions() {
     const { user } = useAuth();
 
+    const userId = user?.id;
+    const userRole = user?.role;
+
     return useMemo(() => {
-        const isAdmin = user?.role === UserRole.ADMIN;
-        const isSupport = user?.role === UserRole.SUPPORT;
+        const isAdmin = userRole === UserRole.ADMIN;
+        const isSupport = userRole === UserRole.SUPPORT;
         const isStaff = isAdmin || isSupport;
 
         return {
-            user,
+            userId,
+            userRole,
             isAdmin,
             isSupport,
             isStaff,
@@ -25,12 +29,12 @@ export function usePermissions() {
             canDeleteTickets: isAdmin,
 
             canEditTicket: (ticket: TicketDTO | null) => {
-                if (!ticket || !user) return false;
-                return isStaff || ticket.reporter?.id === user.id;
+                if (!ticket || !userId) return false;
+                return isStaff || ticket.reporter?.id === userId;
             },
 
             canTakeTicket: (ticket: TicketDTO | null) => {
-                if (!ticket || !user) return false;
+                if (!ticket || !userId) return false;
                 return isStaff && !ticket.assignee && ticket.status !== 'CLOSED';
             },
 
@@ -38,5 +42,5 @@ export function usePermissions() {
                 return isAdmin && !!ticket;
             }
         };
-    }, [user]);
+    }, [userId, userRole]);
 }
