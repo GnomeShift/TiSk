@@ -26,6 +26,7 @@ const subscribeRefresh = (callback: (token: string) => void) => {
 const onRefreshed = (newToken: string) => {
     refreshSubscribers.forEach(callback => callback(newToken));
     refreshSubscribers = [];
+    failedQueue = [];
 };
 
 const onRefreshFailed = (error: Error) => {
