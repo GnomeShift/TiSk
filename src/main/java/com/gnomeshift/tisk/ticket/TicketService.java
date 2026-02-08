@@ -1,5 +1,6 @@
 package com.gnomeshift.tisk.ticket;
 
+import com.gnomeshift.tisk.security.HtmlSanitizer;
 import com.gnomeshift.tisk.user.User;
 import com.gnomeshift.tisk.user.UserRepository;
 import com.gnomeshift.tisk.user.UserRole;
@@ -22,6 +23,7 @@ public class TicketService {
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
     private final TicketMapper ticketMapper;
+    private final HtmlSanitizer htmlSanitizer;
 
     // Get current user from session
     private User getCurrentUser(Authentication authentication) {
@@ -77,6 +79,8 @@ public class TicketService {
     public TicketDTO createTicket(CreateTicketDTO createTicketDTO, Authentication authentication) {
         log.info("Creating new ticket with title: {}", createTicketDTO.getTitle());
 
+        createTicketDTO.setDescription(htmlSanitizer.sanitize(createTicketDTO.getDescription()));
+
         User user = getCurrentUser(authentication);
         Ticket ticket = ticketMapper.toEntity(createTicketDTO);
 
@@ -101,6 +105,10 @@ public class TicketService {
     @Transactional
     public TicketDTO updateTicket(UUID id, UpdateTicketDTO updateTicketDTO, Authentication authentication) {
         log.info("Updating ticket with id: {}", id);
+
+        if (updateTicketDTO.getDescription() != null) {
+            updateTicketDTO.setDescription(htmlSanitizer.sanitize(updateTicketDTO.getDescription()));
+        }
 
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
