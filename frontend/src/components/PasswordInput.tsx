@@ -84,10 +84,6 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
     const { touched, focused, hasError, isValid, handleBlur: fieldHandleBlur, handleFocus: fieldHandleFocus }
         = useFieldState(value, { name, required, label, validate: customValidate, onValidationChange, registerValidator, forceValidate });
 
-    const handleBlur = useCallback(() => { fieldHandleBlur() }, [fieldHandleBlur]);
-
-    const handleFocus = useCallback(() => { fieldHandleFocus() }, [fieldHandleFocus]);
-
     // Error states
     const hasEmptyError = hasError && required && !value;
     const hasRequirementsError = hasError && !!value && !allPassed;
@@ -107,8 +103,8 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
                     type={showPassword ? 'text' : 'password'}
                     value={value}
                     onChange={onChange}
-                    onBlur={handleBlur}
-                    onFocus={handleFocus}
+                    onBlur={fieldHandleBlur}
+                    onFocus={fieldHandleFocus}
                     placeholder={placeholder}
                     disabled={disabled}
                     autoComplete={autoComplete}

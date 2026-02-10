@@ -85,10 +85,11 @@ const FormInput = forwardRef<FormInputRef, FormInputProps>(({
     const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         onChange(e);
         if (validateOnChange && touched) {
+            validate();
         } else if (error) {
             clearError();
         }
-    }, [onChange, validateOnChange, touched, error, clearError]);
+    }, [onChange, validateOnChange, touched, error, clearError, validate]);
 
     const isValid = fieldIsValid && showSuccessState;
 
