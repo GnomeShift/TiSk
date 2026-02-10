@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -82,14 +83,14 @@ public class AuthService {
 
     public AuthResponseDTO refreshToken(RefreshTokenDTO refreshTokenDTO) {
         String dtoToken = refreshTokenDTO.getRefreshToken();
-        String userEmail = jwtService.extractEmail(dtoToken);
+        UUID userId = UUID.fromString(jwtService.extractId(dtoToken));
 
         if (!jwtService.isRefreshToken(dtoToken)) {
             throw new BadCredentialsException("Token isn't a refresh token");
         }
 
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + userEmail));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
 
         // Check status
         if (!user.isEnabled()) {
