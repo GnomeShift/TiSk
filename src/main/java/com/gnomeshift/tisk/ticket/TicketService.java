@@ -89,7 +89,8 @@ public class TicketService {
 
         if (isStaff(user) && createTicketDTO.getReporterId() != null) {
             // Staff can create a ticket for someone
-            reporterRef = userRepository.getReferenceById(createTicketDTO.getReporterId());
+            reporterRef = userRepository.findById(createTicketDTO.getReporterId())
+                    .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + createTicketDTO.getReporterId()));
         }
         else {
             // Use current user ID to get a reference
