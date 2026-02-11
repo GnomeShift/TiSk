@@ -94,13 +94,13 @@ class JwtServiceTest {
     class TokenExtractionTests {
 
         @Test
-        @DisplayName("Extract email from token")
-        void shouldExtractEmailFromToken() {
+        @DisplayName("Extract id from token")
+        void shouldExtractIdFromToken() {
             String token = jwtService.generateAccessToken(testUser);
 
-            String extractedEmail = jwtService.extractEmail(token);
+            UUID extractedId = UUID.fromString(jwtService.extractId(token));
 
-            assertThat(extractedEmail).isEqualTo(testUser.getEmail());
+            assertThat(extractedId).isEqualTo(testUser.getId());
         }
 
         @Test
@@ -108,7 +108,7 @@ class JwtServiceTest {
         void shouldThrowExceptionForMalformedToken() {
             String malformedToken = "invalid.token.here";
 
-            assertThatThrownBy(() -> jwtService.extractEmail(malformedToken))
+            assertThatThrownBy(() -> jwtService.extractId(malformedToken))
                     .isInstanceOf(MalformedJwtException.class);
         }
     }

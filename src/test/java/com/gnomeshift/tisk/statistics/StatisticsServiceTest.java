@@ -17,8 +17,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
@@ -53,6 +52,8 @@ class StatisticsServiceTest {
         assertNotNull(result);
         verify(ticketRepository).count();
         verify(ticketRepository).countByAssigneeIsNull();
+        verify(ticketRepository, times(3)).countByCreatedAtAfter(any(LocalDateTime.class));
+        verify(ticketRepository, times(3)).countByStatusClosedAfter(any(LocalDateTime.class));
         verify(ticketStatisticsMapper).toDto(any(TicketStatistics.class));
     }
 

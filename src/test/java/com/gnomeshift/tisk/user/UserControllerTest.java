@@ -48,6 +48,9 @@ class UserControllerTest {
     @MockitoBean
     private AuthenticationProvider authenticationProvider;
 
+    @MockitoBean
+    private UserRepository userRepository;
+
     private UserDTO testUserDTO;
     private UUID testUserId;
 

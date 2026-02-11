@@ -260,9 +260,9 @@ class AuthServiceTest {
         void shouldRefreshToken() {
             RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO("validRefreshToken");
 
-            when(jwtService.extractEmail(anyString())).thenReturn("test@example.com");
+            when(jwtService.extractId(anyString())).thenReturn("bb5cc36d-9fe0-4e6e-b6cb-f81173006710");
             when(jwtService.isRefreshToken(anyString())).thenReturn(true);
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
+            when(userRepository.findById(UUID.fromString("bb5cc36d-9fe0-4e6e-b6cb-f81173006710"))).thenReturn(Optional.of(testUser));
             when(jwtService.isTokenValid(anyString(), any(User.class))).thenReturn(true);
             when(jwtService.generateAccessToken(any(User.class))).thenReturn("newAccessToken");
             when(jwtService.generateRefreshToken(any(User.class))).thenReturn("newRefreshToken");
@@ -282,7 +282,7 @@ class AuthServiceTest {
         void shouldThrowExceptionForNonRefreshToken() {
             RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO("accessToken");
 
-            when(jwtService.extractEmail(anyString())).thenReturn("test@example.com");
+            when(jwtService.extractId(anyString())).thenReturn("bb5cc36d-9fe0-4e6e-b6cb-f81173006710");
             when(jwtService.isRefreshToken(anyString())).thenReturn(false);
 
             assertThatThrownBy(() -> authService.refreshToken(refreshTokenDTO))
@@ -295,9 +295,9 @@ class AuthServiceTest {
         void shouldThrowExceptionWhenUserNotFound() {
             RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO("validRefreshToken");
 
-            when(jwtService.extractEmail(anyString())).thenReturn("notfound@example.com");
+            when(jwtService.extractId(anyString())).thenReturn("bb5cc36d-9fe0-4e6e-b6cb-f81173006710");
             when(jwtService.isRefreshToken(anyString())).thenReturn(true);
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+            when(userRepository.findById(UUID.fromString("bb5cc36d-9fe0-4e6e-b6cb-f81173006710"))).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> authService.refreshToken(refreshTokenDTO))
                     .isInstanceOf(EntityNotFoundException.class);
@@ -309,9 +309,9 @@ class AuthServiceTest {
             RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO("validRefreshToken");
             testUser.setStatus(UserStatus.INACTIVE);
 
-            when(jwtService.extractEmail(anyString())).thenReturn("test@example.com");
+            when(jwtService.extractId(anyString())).thenReturn("bb5cc36d-9fe0-4e6e-b6cb-f81173006710");
             when(jwtService.isRefreshToken(anyString())).thenReturn(true);
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
+            when(userRepository.findById(UUID.fromString("bb5cc36d-9fe0-4e6e-b6cb-f81173006710"))).thenReturn(Optional.of(testUser));
 
             assertThatThrownBy(() -> authService.refreshToken(refreshTokenDTO))
                     .isInstanceOf(DisabledException.class)
@@ -324,9 +324,9 @@ class AuthServiceTest {
             RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO("validRefreshToken");
             testUser.setStatus(UserStatus.SUSPENDED);
 
-            when(jwtService.extractEmail(anyString())).thenReturn("test@example.com");
+            when(jwtService.extractId(anyString())).thenReturn("bb5cc36d-9fe0-4e6e-b6cb-f81173006710");
             when(jwtService.isRefreshToken(anyString())).thenReturn(true);
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
+            when(userRepository.findById(UUID.fromString("bb5cc36d-9fe0-4e6e-b6cb-f81173006710"))).thenReturn(Optional.of(testUser));
 
             assertThatThrownBy(() -> authService.refreshToken(refreshTokenDTO))
                     .isInstanceOf(DisabledException.class)
@@ -338,9 +338,9 @@ class AuthServiceTest {
         void shouldThrowExceptionForInvalidRefreshToken() {
             RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO("invalidRefreshToken");
 
-            when(jwtService.extractEmail(anyString())).thenReturn("test@example.com");
+            when(jwtService.extractId(anyString())).thenReturn("bb5cc36d-9fe0-4e6e-b6cb-f81173006710");
             when(jwtService.isRefreshToken(anyString())).thenReturn(true);
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
+            when(userRepository.findById(UUID.fromString("bb5cc36d-9fe0-4e6e-b6cb-f81173006710"))).thenReturn(Optional.of(testUser));
             when(jwtService.isTokenValid(anyString(), any(User.class))).thenReturn(false);
 
             assertThatThrownBy(() -> authService.refreshToken(refreshTokenDTO))
