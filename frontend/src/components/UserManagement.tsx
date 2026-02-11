@@ -51,7 +51,8 @@ const UserFormModal: React.FC<{
         try {
             await onSubmit(formData);
             onClose();
-        } finally {
+        } catch {}
+        finally {
             setLoading(false);
         }
     };
@@ -233,14 +234,19 @@ const UserManagement: React.FC = () => {
     useEffect(() => { void loadUsers() }, [currentPage, filters.sortBy, filters.sortOrder]);
 
     const handleSave = async (data: any) => {
-        if (modalState.user) {
-            await userService.update(modalState.user.id, data as UpdateUserDTO);
-            toast.success('Пользователь обновлен');
-        } else {
-            await userService.create(data as CreateUserDTO);
-            toast.success('Пользователь создан');
+        try {
+            if (modalState.user) {
+                await userService.update(modalState.user.id, data as UpdateUserDTO);
+                toast.success('Пользователь обновлен');
+            } else {
+                await userService.create(data as CreateUserDTO);
+                toast.success('Пользователь создан');
+            }
+            await loadUsers();
+        } catch (err) {
+            toast.error(getErrorMessage(err));
+            throw err;
         }
-        await loadUsers();
     };
 
     const handleAction = async (action: 'delete' | 'status', user: UserDTO) => {
