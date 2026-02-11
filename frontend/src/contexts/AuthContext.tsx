@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { AuthState, LoginDTO, RegisterDTO, ChangePasswordDTO } from '../types/auth';
 import { UserDTO } from '../types/user'
@@ -69,47 +69,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const accessToken = localStorage.getItem('access_token');
             const refreshToken = localStorage.getItem('refresh_token');
 
-            if (accessToken && refreshToken) {
-                try {
-                    const currentUser = await authService.getCurrentUser();
+            if (!accessToken || !refreshToken) {
+                if (isMounted) setState(prev => ({ ...prev, isLoading: false }));
+                return;
+            }
 
-                    if (isMounted) {
+            try {
+                const currentUser = await authService.getCurrentUser();
+
+                if (isMounted) {
+                    setState({
+                        user: currentUser,
+                        accessToken,
+                        refreshToken,
+                        isAuthenticated: true,
+                        isLoading: false
+                    });
+                }
+            } catch (error) {
+                if (!isMounted) return;
+                if (isAuthError(error)) {
+                    logout();
+                    return;
+                }
+
+                const cachedUser = localStorage.getItem('user');
+                if (cachedUser) {
+                    try {
                         setState({
-                            user: currentUser,
+                            user: JSON.parse(cachedUser),
                             accessToken,
                             refreshToken,
                             isAuthenticated: true,
                             isLoading: false
                         });
-                    }
-                } catch (error) {
-                    if (isMounted) {
-                        if (isAuthError(error)) {
-                            logout();
-                        } else {
-                            const cachedUser = localStorage.getItem('user');
-                            if (cachedUser) {
-                                try {
-                                    setState({
-                                        user: JSON.parse(cachedUser),
-                                        accessToken,
-                                        refreshToken,
-                                        isAuthenticated: true,
-                                        isLoading: false
-                                    });
-                                } catch {
-                                    setState(prev => ({ ...prev, isLoading: false }));
-                                }
-                            } else {
-                                setState(prev => ({ ...prev, isLoading: false }));
-                            }
-                        }
+                        return;
+                    } catch(err) {
+                        console.error(err)
                     }
                 }
-            } else {
-                if (isMounted) {
-                    setState(prev => ({ ...prev, isLoading: false }));
-                }
+                setState(prev => ({ ...prev, isLoading: false }));
             }
         };
 
@@ -161,8 +160,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await authService.changePassword(data);
     }, []);
 
+    const contextValue = useMemo<AuthContextType>(() => ({
+        ...state,
+        login,
+        register,
+        logout,
+        updateUser,
+        changePassword
+    }), [state, login, register, logout, updateUser, changePassword]);
+
     return (
-        <AuthContext.Provider value={{ ...state, login, register, logout, updateUser, changePassword }}>
+        <AuthContext.Provider value={contextValue}>
             {children}
         </AuthContext.Provider>
     );

@@ -57,12 +57,14 @@ export const Collapsible: React.FC<CollapsibleProps> = ({
 
             <div
                 className={cn(
-                    'overflow-hidden transition-all duration-200',
-                    isOpen ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
+                    'grid transition-all duration-200 ease-in-out',
+                    isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
                 )}
             >
-                <div className={cn('p-4 pt-0 border-t', contentClassName)}>
-                    {children}
+                <div className="overflow-hidden">
+                    <div className={cn('p-4 pt-0 border-t', contentClassName)}>
+                        {children}
+                    </div>
                 </div>
             </div>
         </div>

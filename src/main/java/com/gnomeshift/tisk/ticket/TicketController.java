@@ -47,7 +47,6 @@ public class TicketController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPPORT')")
     public ResponseEntity<TicketDTO> updateTicket(@PathVariable UUID id, @Valid @RequestBody UpdateTicketDTO updateTicketDTO,
                                                   Authentication authentication) {
         return ResponseEntity.ok(ticketService.updateTicket(id, updateTicketDTO, authentication));

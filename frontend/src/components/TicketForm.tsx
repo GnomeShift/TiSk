@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { TicketPriority, TicketStatus } from '../types/ticket';
 import { ticketService } from '../services/ticketService';
@@ -20,7 +20,7 @@ const TicketForm: React.FC = () => {
     const { id } = useParams();
     const { user } = useAuth();
     const permissions = usePermissions();
-    const { forceValidate, registerFieldError, validateForm, fieldErrors } = useFormValidation();
+    const { forceValidate, registerFieldError, registerValidator, validateForm, fieldErrors } = useFormValidation();
 
     const [formData, setFormData] = useState({
         title: '',
@@ -33,34 +33,43 @@ const TicketForm: React.FC = () => {
     const [initLoading, setInitLoading] = useState(!!id);
 
     useEffect(() => {
-        if (id) ticketService.getById(id).then(t => setFormData({
+        if (!id) return;
+
+        ticketService.getById(id).then(t => setFormData({
             title: t.title,
             description: t.description,
             status: t.status,
             priority: t.priority
         })).catch((err) => { toast.error(getErrorMessage(err)); navigate('/') }).finally(() => setInitLoading(false));
-    }, [id]);
+    }, [id, navigate]);
 
     const MAX_DESCRIPTION_LENGTH = 10000;
+
+    const validateDescription = useCallback((): string => {
+        const desc = formData.description;
+        const isEmpty = !desc || desc === '<p></p>' || desc === '<p><br></p>' || desc.replace(/<[^>]*>/g, '').trim() === '';
+
+        if (isEmpty) return 'Описание обязательно для заполнения';
+        if (desc.length > MAX_DESCRIPTION_LENGTH) return `Максимум ${MAX_DESCRIPTION_LENGTH} символов`;
+        return '';
+    }, [formData.description]);
+
+    useEffect(() => {
+        return registerValidator('description', validateDescription);
+    }, [registerValidator, validateDescription]);
+
+    useEffect(() => {
+        if (fieldErrors['description']) {
+            const error = validateDescription();
+            if (!error) registerFieldError('description', '');
+        }
+    }, [formData.description, fieldErrors, validateDescription, registerFieldError]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        let isDescriptionValid = true;
-
-        if (!formData.description || formData.description === '<p></p>') {
-            registerFieldError('description', 'Описание обязательно для заполнения');
-            isDescriptionValid = false;
-        }
-        else if (formData.description.length > MAX_DESCRIPTION_LENGTH) {
-            registerFieldError('description', `Максимум ${MAX_DESCRIPTION_LENGTH} символов`);
-            isDescriptionValid = false;
-        } else {
-            registerFieldError('description', '');
-        }
-
-        const { isValid } = await validateForm();
-        if (!isValid || !isDescriptionValid) return;
+        const { isValid } = validateForm();
+        if (!isValid) return;
 
         setLoading(true);
         try {
@@ -68,7 +77,10 @@ const TicketForm: React.FC = () => {
                 await ticketService.update(id, formData);
                 toast.success('Тикет обновлен');
             } else {
-                await ticketService.create({ ...formData, reporterId: user!.id });
+                if (!user) {
+                    return;
+                }
+                await ticketService.create({ ...formData, reporterId: user.id });
                 toast.success('Тикет создан');
             }
             navigate('/');
@@ -100,7 +112,7 @@ const TicketForm: React.FC = () => {
                             name="title"
                             label="Заголовок"
                             value={formData.title}
-                            onChange={e => setFormData({ ...formData, title: e.target.value })}
+                            onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
                             required
                             disabled={loading}
                             minLength={1}
@@ -112,12 +124,7 @@ const TicketForm: React.FC = () => {
                         <RichTextEditor
                             label="Описание"
                             value={formData.description}
-                            onChange={(html) => {
-                                setFormData({ ...formData, description: html });
-                                if (html && html.length <= MAX_DESCRIPTION_LENGTH) {
-                                    registerFieldError('description', '');
-                                }
-                            }}
+                            onChange={(html) => setFormData(prev => ({ ...prev, description: html }))}
                             error={fieldErrors['description']}
                             disabled={loading}
                             required
@@ -126,32 +133,30 @@ const TicketForm: React.FC = () => {
 
                         <div className="grid gap-6 md:grid-cols-2">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium">
-                                    Приоритет
-                                </label>
+                                <label className="text-sm font-medium">Приоритет</label>
                                 <TicketPrioritySelect
                                     value={formData.priority}
-                                    onChange={v => setFormData({ ...formData, priority: v as TicketPriority })}
+                                    onChange={v => setFormData(prev => ({ ...prev, priority: v as TicketPriority }))}
                                     disabled={loading}
                                 />
                             </div>
-                            {id && permissions.canChangeTicketStatus &&
+                            {id && permissions.canChangeTicketStatus && (
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Статус</label>
                                     <TicketStatusSelect
                                         value={formData.status}
-                                        onChange={v => setFormData({ ...formData, status: v as TicketStatus })}
+                                        onChange={v => setFormData(prev => ({ ...prev, status: v as TicketStatus }))}
                                         disabled={loading}
                                     />
                                 </div>
-                            }
+                            )}
                         </div>
 
-                        {!id && user &&
+                        {!id && user && (
                             <div className="p-4 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-200 text-sm">
                                 Будет создан от имени: <strong>{user.firstName} {user.lastName}</strong>
                             </div>
-                        }
+                        )}
 
                         <div className="flex gap-3 pt-4">
                             <Button type="submit" loading={loading}>

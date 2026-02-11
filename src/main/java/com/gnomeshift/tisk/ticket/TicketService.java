@@ -1,5 +1,6 @@
 package com.gnomeshift.tisk.ticket;
 
+import com.gnomeshift.tisk.security.HtmlSanitizer;
 import com.gnomeshift.tisk.user.User;
 import com.gnomeshift.tisk.user.UserRepository;
 import com.gnomeshift.tisk.user.UserRole;
@@ -22,6 +23,7 @@ public class TicketService {
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
     private final TicketMapper ticketMapper;
+    private final HtmlSanitizer htmlSanitizer;
 
     // Get current user from session
     private User getCurrentUser(Authentication authentication) {
@@ -77,6 +79,8 @@ public class TicketService {
     public TicketDTO createTicket(CreateTicketDTO createTicketDTO, Authentication authentication) {
         log.info("Creating new ticket with title: {}", createTicketDTO.getTitle());
 
+        createTicketDTO.setDescription(htmlSanitizer.sanitize(createTicketDTO.getDescription()));
+
         User user = getCurrentUser(authentication);
         Ticket ticket = ticketMapper.toEntity(createTicketDTO);
 
@@ -85,7 +89,8 @@ public class TicketService {
 
         if (isStaff(user) && createTicketDTO.getReporterId() != null) {
             // Staff can create a ticket for someone
-            reporterRef = userRepository.getReferenceById(createTicketDTO.getReporterId());
+            reporterRef = userRepository.findById(createTicketDTO.getReporterId())
+                    .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + createTicketDTO.getReporterId()));
         }
         else {
             // Use current user ID to get a reference
@@ -102,11 +107,20 @@ public class TicketService {
     public TicketDTO updateTicket(UUID id, UpdateTicketDTO updateTicketDTO, Authentication authentication) {
         log.info("Updating ticket with id: {}", id);
 
+        if (updateTicketDTO.getDescription() != null) {
+            updateTicketDTO.setDescription(htmlSanitizer.sanitize(updateTicketDTO.getDescription()));
+        }
+
         Ticket ticket = ticketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
 
         User currentUser = getCurrentUser(authentication);
         checkAccess(ticket, currentUser);
+
+        if (updateTicketDTO.getStatus() != null && updateTicketDTO.getStatus() != ticket.getStatus()) {
+            ticket.updateStatusWithClosedAt(updateTicketDTO.getStatus());
+        }
+
         ticketMapper.updateTicketFromDto(updateTicketDTO, ticket);
 
         // Staff can change reporter
@@ -127,12 +141,12 @@ public class TicketService {
                 .orElseThrow(() -> new EntityNotFoundException("Ticket not found with id: " + id));
 
         User assignee = userRepository.findById(assigneeId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + assigneeId));
 
         ticket.setAssignee(assignee);
 
         if (ticket.getStatus() == TicketStatus.OPEN) {
-            ticket.setStatus(TicketStatus.IN_PROGRESS);
+            ticket.updateStatusWithClosedAt(TicketStatus.IN_PROGRESS);
         }
 
         log.info("Ticket assigned successfully: {}", id);

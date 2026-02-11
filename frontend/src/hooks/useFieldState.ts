@@ -6,22 +6,20 @@ interface UseFieldStateOptions {
     label: string;
     validate?: (value: string) => string;
     onValidationChange?: (name: string, error: string) => void;
+    registerValidator?: (name: string, validate: () => string) => () => void;
     forceValidate?: number;
 }
 
 export function useFieldState(value: string, options: UseFieldStateOptions) {
-    const { name, required = false, label, validate: customValidate, onValidationChange, forceValidate = 0 } = options;
+    const { name, required = false, label, validate: customValidate, onValidationChange, registerValidator, forceValidate = 0 } = options;
     const [error, setError] = useState('');
     const [touched, setTouched] = useState(false);
     const [focused, setFocused] = useState(false);
     const prevForceValidateRef = useRef(forceValidate);
-    const onValidationChangeRef = useRef(onValidationChange);
+    const valueRef = useRef(value);
+    valueRef.current = value;
 
-    useEffect(() => {
-        onValidationChangeRef.current = onValidationChange;
-    }, [onValidationChange]);
-
-    const validate = useCallback((val: string): string => {
+    const validateValue = useCallback((val: string): string => {
         if (required && !val.trim()) {
             return `${label} обязательно для заполнения`;
         }
@@ -29,25 +27,32 @@ export function useFieldState(value: string, options: UseFieldStateOptions) {
     }, [required, label, customValidate]);
 
     const runValidation = useCallback((val: string): string => {
-        const err = validate(val);
+        const err = validateValue(val);
         setError(err);
         setTouched(true);
-        onValidationChangeRef.current?.(name, err);
+        onValidationChange?.(name, err);
         return err;
-    }, [validate, name]);
+    }, [validateValue, name, onValidationChange]);
 
-    // Force validation
+    const validate = useCallback((): string => {
+        return runValidation(valueRef.current);
+    }, [runValidation]);
+
+    useEffect(() => {
+        if (registerValidator) return registerValidator(name, validate);
+    }, [registerValidator, name, validate]);
+
     useEffect(() => {
         if (forceValidate > 0 && forceValidate !== prevForceValidateRef.current) {
             prevForceValidateRef.current = forceValidate;
-            runValidation(value);
+            if (!registerValidator) runValidation(valueRef.current);
         }
-    }, [forceValidate, value, runValidation]);
+    }, [forceValidate, runValidation, registerValidator]);
 
     const handleBlur = useCallback(() => {
         setFocused(false);
-        runValidation(value);
-    }, [value, runValidation]);
+        runValidation(valueRef.current);
+    }, [runValidation]);
 
     const handleFocus = useCallback(() => {
         setFocused(true);
@@ -55,8 +60,8 @@ export function useFieldState(value: string, options: UseFieldStateOptions) {
 
     const clearError = useCallback(() => {
         setError('');
-        onValidationChangeRef.current?.(name, '');
-    }, [name]);
+        onValidationChange?.(name, '');
+    }, [name, onValidationChange]);
 
     const hasError = touched && !!error;
     const isValid = touched && !error && !!value;
@@ -67,7 +72,7 @@ export function useFieldState(value: string, options: UseFieldStateOptions) {
         focused,
         hasError,
         isValid,
-        validate: () => runValidation(value),
+        validate,
         handleBlur,
         handleFocus,
         clearError,

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import DOMPurify from 'dompurify';
 import { cn } from '../../services/utils';
 import { common, createLowlight } from 'lowlight';
 import { toHtml } from 'hast-util-to-html';
@@ -10,12 +11,37 @@ interface RichTextViewerProps {
     className?: string;
 }
 
+const ALLOWED_TAGS = [
+    'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'strike',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'ul', 'ol', 'li',
+    'blockquote', 'pre', 'code',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td',
+    'a', 'span', 'div'
+];
+
+const ALLOWED_ATTR = ['href', 'target', 'rel', 'class', 'colspan', 'rowspan'];
+
+const sanitizeHtml = (dirty: string): string => {
+    return DOMPurify.sanitize(dirty, {
+        ALLOWED_TAGS,
+        ALLOWED_ATTR,
+        ALLOW_DATA_ATTR: false,
+        ADD_ATTR: ['target'],
+        FORBID_TAGS: ['script', 'style', 'iframe', 'form', 'input', 'button'],
+        FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur']
+    });
+};
+
 export const RichTextViewer: React.FC<RichTextViewerProps> = ({ content, className }) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
+    // Sanitize content
+    const sanitizedContent = content ? sanitizeHtml(content) : '';
+
     useEffect(() => {
-        if (!content || !containerRef.current) return;
-        if (!content.includes('<pre') && !content.includes('<code')) return;
+        if (!sanitizedContent || !containerRef.current) return;
+        if (!sanitizedContent.includes('<pre') && !sanitizedContent.includes('<code')) return;
 
         const highlightBlock = (block: Element) => {
             if (block.classList.contains('hljs')) return;
@@ -55,7 +81,7 @@ export const RichTextViewer: React.FC<RichTextViewerProps> = ({ content, classNa
         observer.observe(containerRef.current, { childList: true, subtree: true });
 
         return () => observer.disconnect();
-    }, [content]);
+    }, [sanitizedContent]);
 
     if (!content) {
         return <p className="text-muted-foreground italic">Нет описания</p>;
@@ -75,7 +101,7 @@ export const RichTextViewer: React.FC<RichTextViewerProps> = ({ content, classNa
                 "prose-pre:p-0 prose-pre:bg-transparent prose-pre:border-none prose-pre:m-0",
                 className
             )}
-            dangerouslySetInnerHTML={{ __html: content }}
+            dangerouslySetInnerHTML={{ __html: sanitizedContent }}
         />
     );
 };

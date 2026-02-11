@@ -35,6 +35,7 @@ dependencies {
 	implementation("org.mapstruct:mapstruct:1.6.3")
 	implementation("io.jsonwebtoken:jjwt-api:0.13.0")
 	implementation("io.github.cdimascio:dotenv-java:3.2.0")
+	implementation("com.googlecode.owasp-java-html-sanitizer:owasp-java-html-sanitizer:20260102.1")
 	compileOnly("org.projectlombok:lombok")
 	runtimeOnly("org.postgresql:postgresql")
 	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.13.0")

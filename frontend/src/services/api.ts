@@ -26,6 +26,7 @@ const subscribeRefresh = (callback: (token: string) => void) => {
 const onRefreshed = (newToken: string) => {
     refreshSubscribers.forEach(callback => callback(newToken));
     refreshSubscribers = [];
+    failedQueue = [];
 };
 
 const onRefreshFailed = (error: Error) => {
@@ -36,19 +37,8 @@ const onRefreshFailed = (error: Error) => {
 
 // Centralized logout
 const triggerLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-
     // Event for AuthContext
     window.dispatchEvent(new CustomEvent('auth:logout'));
-
-    // Fallback redirect
-    setTimeout(() => {
-        if (window.location.pathname !== '/login') {
-            window.location.href = '/login';
-        }
-    }, 100);
 };
 
 // Request interceptor

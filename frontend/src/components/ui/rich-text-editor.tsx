@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
-import { Table } from '@tiptap/extension-table'
+import { Table } from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
@@ -37,16 +37,56 @@ interface EditorToolbarProps {
     disabled?: boolean;
 }
 
+interface ToolbarButtonState {
+    bold: boolean;
+    italic: boolean;
+    underline: boolean;
+    heading2: boolean;
+    codeBlock: boolean;
+    bulletList: boolean;
+    orderedList: boolean;
+    blockquote: boolean;
+    table: boolean;
+}
+
+const getToolbarState = (editor: Editor): ToolbarButtonState => ({
+    bold: editor.isActive('bold'),
+    italic: editor.isActive('italic'),
+    underline: editor.isActive('underline'),
+    heading2: editor.isActive('heading', { level: 2 }),
+    codeBlock: editor.isActive('codeBlock'),
+    bulletList: editor.isActive('bulletList'),
+    orderedList: editor.isActive('orderedList'),
+    blockquote: editor.isActive('blockquote'),
+    table: editor.isActive('table'),
+});
+
 // Toolbar
 const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor, disabled }) => {
-    const [, setUpdateCounter] = useState(0);
+    const [state, setState] = useState<ToolbarButtonState | null>(null);
 
     useEffect(() => {
         if (!editor) return;
 
         const handleUpdate = () => {
-            setUpdateCounter(c => c + 1);
+            const newState = getToolbarState(editor);
+            setState(prev => {
+                if (prev &&
+                    prev.bold === newState.bold &&
+                    prev.italic === newState.italic &&
+                    prev.underline === newState.underline &&
+                    prev.heading2 === newState.heading2 &&
+                    prev.codeBlock === newState.codeBlock &&
+                    prev.bulletList === newState.bulletList &&
+                    prev.orderedList === newState.orderedList &&
+                    prev.blockquote === newState.blockquote &&
+                    prev.table === newState.table
+                ) return prev;
+                return newState;
+            });
         };
+
+        handleUpdate();
 
         editor.on('selectionUpdate', handleUpdate);
         editor.on('transaction', handleUpdate);
@@ -57,9 +97,9 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor, disabled }) => {
         };
     }, [editor]);
 
-    if (!editor) return null;
+    if (!editor || !state) return null;
 
-    const isInTable = editor.isActive('table');
+    const isInTable = state.table;
 
     return (
         <div className="border-b bg-muted/20 p-1 flex flex-wrap gap-1 items-center rounded-t-md">
@@ -67,7 +107,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor, disabled }) => {
                 variant="ghost" size="icon-sm" type="button"
                 onClick={() => editor.chain().focus().toggleBold().run()}
                 disabled={disabled}
-                className={cn(editor.isActive('bold') && "bg-muted text-foreground shadow-inner")}
+                className={cn(state.bold && "bg-muted text-foreground shadow-inner")}
                 title="Жирный"
             >
                 <Bold className="h-4 w-4" />
@@ -76,7 +116,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor, disabled }) => {
                 variant="ghost" size="icon-sm" type="button"
                 onClick={() => editor.chain().focus().toggleItalic().run()}
                 disabled={disabled}
-                className={cn(editor.isActive('italic') && "bg-muted text-foreground shadow-inner")}
+                className={cn(state.italic && "bg-muted text-foreground shadow-inner")}
                 title="Курсив"
             >
                 <Italic className="h-4 w-4" />
@@ -85,7 +125,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor, disabled }) => {
                 variant="ghost" size="icon-sm" type="button"
                 onClick={() => editor.chain().focus().toggleUnderline().run()}
                 disabled={disabled}
-                className={cn(editor.isActive('underline') && "bg-muted text-foreground shadow-inner")}
+                className={cn(state.underline && "bg-muted text-foreground shadow-inner")}
                 title="Подчеркнутый"
             >
                 <UnderlineIcon className="h-4 w-4" />
@@ -97,7 +137,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor, disabled }) => {
                 variant="ghost" size="icon-sm" type="button"
                 onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
                 disabled={disabled}
-                className={cn(editor.isActive('heading', { level: 2 }) && "bg-muted text-foreground shadow-inner")}
+                className={cn(state.heading2 && "bg-muted text-foreground shadow-inner")}
                 title="Заголовок H2"
             >
                 <Heading2 className="h-4 w-4" />
@@ -106,7 +146,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor, disabled }) => {
                 variant="ghost" size="icon-sm" type="button"
                 onClick={() => editor.chain().focus().toggleCodeBlock().run()}
                 disabled={disabled}
-                className={cn(editor.isActive('codeBlock') && "bg-muted text-foreground shadow-inner")}
+                className={cn(state.codeBlock && "bg-muted text-foreground shadow-inner")}
                 title="Код"
             >
                 <Code className="h-4 w-4" />
@@ -118,7 +158,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor, disabled }) => {
                 variant="ghost" size="icon-sm" type="button"
                 onClick={() => editor.chain().focus().toggleBulletList().run()}
                 disabled={disabled}
-                className={cn(editor.isActive('bulletList') && "bg-muted text-foreground shadow-inner")}
+                className={cn(state.bulletList && "bg-muted text-foreground shadow-inner")}
                 title="Маркированный список"
             >
                 <List className="h-4 w-4" />
@@ -127,7 +167,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor, disabled }) => {
                 variant="ghost" size="icon-sm" type="button"
                 onClick={() => editor.chain().focus().toggleOrderedList().run()}
                 disabled={disabled}
-                className={cn(editor.isActive('orderedList') && "bg-muted text-foreground shadow-inner")}
+                className={cn(state.orderedList && "bg-muted text-foreground shadow-inner")}
                 title="Нумерованный список"
             >
                 <ListOrdered className="h-4 w-4" />
@@ -136,7 +176,7 @@ const EditorToolbar: React.FC<EditorToolbarProps> = ({ editor, disabled }) => {
                 variant="ghost" size="icon-sm" type="button"
                 onClick={() => editor.chain().focus().toggleBlockquote().run()}
                 disabled={disabled}
-                className={cn(editor.isActive('blockquote') && "bg-muted text-foreground shadow-inner")}
+                className={cn(state.blockquote && "bg-muted text-foreground shadow-inner")}
                 title="Цитата"
             >
                 <Quote className="h-4 w-4" />
@@ -236,6 +276,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
                                                                   hint
                                                               }) => {
     const [charCount, setCharCount] = useState(0);
+    const isInternalUpdateRef = useRef(false);
+    const lastValueRef = useRef(value);
 
     const editor = useEditor({
         extensions: [
@@ -261,15 +303,14 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         content: value,
         editable: !disabled,
         onUpdate: ({ editor }) => {
-            const html = editor.getHTML();
+            isInternalUpdateRef.current = true;
 
-            if (editor.isEmpty) {
-                onChange('');
-                setCharCount(0);
-            } else {
-                onChange(html);
-                setCharCount(html.length);
-            }
+            const html = editor.isEmpty ? '' : editor.getHTML();
+            lastValueRef.current = html;
+            setCharCount(html.length);
+            onChange(html);
+
+            Promise.resolve().then(() => { isInternalUpdateRef.current = false });
         },
         editorProps: {
             attributes: {
@@ -285,21 +326,20 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     useEffect(() => {
         if (!editor) return;
 
-        const currentHTML = editor.getHTML();
-        const isEmpty = editor.isEmpty;
-
-        if (value === '' || value === null || value === undefined) {
-            if (!isEmpty) {
+        if (isInternalUpdateRef.current) return;
+        if (value === lastValueRef.current) return;
+        if (!value || value === '') {
+            if (!editor.isEmpty) {
                 editor.commands.clearContent();
                 setCharCount(0);
             }
+            lastValueRef.current = value;
             return;
         }
 
-        if (value !== currentHTML) {
-            editor.commands.setContent(value);
-            setCharCount(value.length);
-        }
+        lastValueRef.current = value;
+        editor.commands.setContent(value);
+        setCharCount(value.length);
     }, [value, editor]);
 
     useEffect(() => {

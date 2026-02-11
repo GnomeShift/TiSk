@@ -1,7 +1,10 @@
 package com.gnomeshift.tisk.auth;
 
+import com.gnomeshift.tisk.user.UserRepository;
+import com.gnomeshift.tisk.user.User;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,22 +17,20 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
+    private final UserRepository userRepository;
 
     @Qualifier("handlerExceptionResolver")
     private final HandlerExceptionResolver resolver;
@@ -51,9 +52,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt = authHeader.substring(7);
 
         try {
-            final String userEmail = jwtService.extractEmail(jwt);
+            final UUID userId = UUID.fromString(jwtService.extractId(jwt));
 
-            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            if (SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 // Check for refresh token instead of access
                 if (!jwtService.isAccessToken(jwt)) {
@@ -61,19 +62,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
 
                 // Get user from DB
-                UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+                User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
 
                 // Check status
-                if (!userDetails.isAccountNonLocked()) {
+                if (!user.isAccountNonLocked()) {
                     throw new LockedException("User account is locked");
                 }
 
                 // Check signature and expiration
-                if (jwtService.isTokenValid(jwt, userDetails)) {
+                if (jwtService.isTokenValid(jwt, user)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails,
+                            user,
                             null,
-                            userDetails.getAuthorities()
+                            user.getAuthorities()
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
@@ -85,11 +87,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.warn("JWT token expired: {}", e.getMessage());
             resolver.resolveException(request, response, null, e);
         }
-        catch (MalformedJwtException e) {
+        catch (MalformedJwtException | IllegalArgumentException e) {
             log.warn("Invalid JWT token: {}", e.getMessage());
             resolver.resolveException(request, response, null, e);
         }
-        catch (UsernameNotFoundException e) {
+        catch (EntityNotFoundException e) {
             log.warn("User not found: {}", e.getMessage());
             resolver.resolveException(request, response, null, e);
         }

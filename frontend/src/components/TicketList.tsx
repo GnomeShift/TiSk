@@ -101,13 +101,17 @@ const TicketList: React.FC = () => {
 
     useEffect(() => { setCurrentPage(1);}, [search, status, priority, sortBy, sortOrder, viewMode]);
 
-    const handleDelete = async (id: string, title: string) => {
-        if (await deleteConfirm(`тикет "${title.length > 35 ? title.substring(0, 35) + '...' : title}"`)) {
-            await ticketService.delete(id);
-            await loadTickets();
-            toast.success('Тикет удален');
+    const handleDelete = useCallback(async (id: string, title: string) => {
+        try {
+            if (await deleteConfirm(`тикет "${title.length > 35 ? title.substring(0, 35) + '...' : title}"`)) {
+                await ticketService.delete(id);
+                await loadTickets();
+                toast.success('Тикет удален');
+            }
+        } catch (err) {
+            toast.error(getErrorMessage(err));
         }
-    };
+    }, [deleteConfirm, loadTickets]);
 
     const handleTakeTicket = async (ticketId: string) => {
         if (!user) return;

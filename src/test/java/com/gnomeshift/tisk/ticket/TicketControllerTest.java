@@ -3,6 +3,7 @@ package com.gnomeshift.tisk.ticket;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gnomeshift.tisk.auth.JwtService;
 import com.gnomeshift.tisk.security.SecurityConfig;
+import com.gnomeshift.tisk.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -47,6 +48,9 @@ class TicketControllerTest {
 
     @MockitoBean
     private AuthenticationProvider authenticationProvider;
+
+    @MockitoBean
+    private UserRepository userRepository;
 
     private TicketDTO testTicketDTO;
     private UUID testTicketId;
