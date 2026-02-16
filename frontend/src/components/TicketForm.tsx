@@ -47,7 +47,8 @@ const TicketForm: React.FC = () => {
 
     const validateDescription = useCallback((): string => {
         const desc = formData.description;
-        const isEmpty = !desc || desc === '<p></p>' || desc === '<p><br></p>' || desc.replace(/<[^>]*>/g, '').trim() === '';
+        const textContent = new DOMParser().parseFromString(desc, 'text/html').body.textContent || '';
+        const isEmpty = !desc || desc === '<p></p>' || desc === '<p><br></p>' || textContent.trim() === '';
 
         if (isEmpty) return 'Описание обязательно для заполнения';
         if (desc.length > MAX_DESCRIPTION_LENGTH) return `Максимум ${MAX_DESCRIPTION_LENGTH} символов`;
