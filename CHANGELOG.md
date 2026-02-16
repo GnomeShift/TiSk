@@ -1,5 +1,98 @@
 # Changelog
 
+## [1.13.0](https://github.com/GnomeShift/TiSk/compare/1.12.6...1.13.0) (2026-02-16)
+
+
+### 🚀 Features
+
+* add rich text editor ([#40](https://github.com/GnomeShift/TiSk/issues/40)) ([90d8cce](https://github.com/GnomeShift/TiSk/commit/90d8ccee12186e00653e1684b845b05a932955a1))
+* **front:** add errors translation ([25b0e1c](https://github.com/GnomeShift/TiSk/commit/25b0e1cd699474c1590cd74794e486243926cde2))
+* **front:** add rich text editor ([804f5a5](https://github.com/GnomeShift/TiSk/commit/804f5a5b906ca7be561b2369cfe0a168f487a4e5))
+
+
+### 🐛 Bug fixes
+
+* **back:** `DIVE` ([953566b](https://github.com/GnomeShift/TiSk/commit/953566b53b862393243b2546c941e2ee159bb817))
+* **back:** `NPE` ([e5ec2c3](https://github.com/GnomeShift/TiSk/commit/e5ec2c32c7a4fcb7e630e3db7e4d2d59cce1f16e))
+* **back:** confidential information disclosure ([958a148](https://github.com/GnomeShift/TiSk/commit/958a148dd60f362608e2990b0d82a7480d849460))
+* **back:** infinite token refreshing ([11ba4d2](https://github.com/GnomeShift/TiSk/commit/11ba4d2fd8d928c4605ba432f8cad861df2ab4c6))
+* **back:** privilege escalation ([2cda047](https://github.com/GnomeShift/TiSk/commit/2cda047db989a061ff77af54039c16db8306fdd2))
+* **back:** security ([#39](https://github.com/GnomeShift/TiSk/issues/39)) ([b751f37](https://github.com/GnomeShift/TiSk/commit/b751f377ce9c41cc34f471739e134562b684b6b2))
+* **back:** stored XSS ([ff1ac70](https://github.com/GnomeShift/TiSk/commit/ff1ac70c1d077d58ce42adade2f8fcafd33a7784))
+* **back:** typos ([4b85908](https://github.com/GnomeShift/TiSk/commit/4b8590807568d0516c16b2d82990b8781c8d4a3b))
+* **back:** user can't edit ticket ([7fcdd9b](https://github.com/GnomeShift/TiSk/commit/7fcdd9b68924b7ff52c561b1c9eb46afb5ff0bee))
+* **front:** can't remove table after row deletion ([09a7935](https://github.com/GnomeShift/TiSk/commit/09a79352ac2c7e8f12354edfc142c5a55326c360))
+* **front:** edit modal closes on error ([5b010d7](https://github.com/GnomeShift/TiSk/commit/5b010d7a20faa827ff63de9751bd86ee4a852475))
+* **front:** improve code quality ([0ad01d3](https://github.com/GnomeShift/TiSk/commit/0ad01d3a67f1bcb5e144d3ae4b3d182a5fe302f8))
+* **front:** incomplete multi-character sanitization ([4c7eeaa](https://github.com/GnomeShift/TiSk/commit/4c7eeaad13db96ce1c7528f00cf926aaa42f458f))
+* **front:** incorrect auth endpoints interception ([620ef9c](https://github.com/GnomeShift/TiSk/commit/620ef9cd2aee9baeb65ffecfb35ccce1de432109))
+* **front:** infinite loop ([3a50ff9](https://github.com/GnomeShift/TiSk/commit/3a50ff9f05e85fb7e31ca45f335fbbec5830f6cf))
+* **front:** long unspaced text breaks page layout ([cdf69d1](https://github.com/GnomeShift/TiSk/commit/cdf69d1f3448743f7ed534564fca17257fab7c71))
+* **front:** memory leak ([df05025](https://github.com/GnomeShift/TiSk/commit/df05025e7e9beabd303e2a9e72aca5180562097c))
+* **front:** missing async error handling ([2fcb010](https://github.com/GnomeShift/TiSk/commit/2fcb01029ac359697a4e4fa6613641dafd8f87e5))
+* **front:** missing dark green color ([6737147](https://github.com/GnomeShift/TiSk/commit/6737147ac724e3a0615019a5919b28f8a16ad696))
+* **front:** missing permission to view all tickets ([74162e2](https://github.com/GnomeShift/TiSk/commit/74162e2f445c612cc391c62550daf7858d56c423))
+* **front:** pages ([#43](https://github.com/GnomeShift/TiSk/issues/43)) ([45ce244](https://github.com/GnomeShift/TiSk/commit/45ce244db07c84f02cdfd2e65cb49fc39a0b84d0))
+* **front:** state sync ([7784ba4](https://github.com/GnomeShift/TiSk/commit/7784ba404dabc7cd0fa0fb20470b44a18be8a2e6))
+* **front:** unexpected logout on network error ([77f5e0a](https://github.com/GnomeShift/TiSk/commit/77f5e0af8b2bce44296b5e778ddc194571af47a2))
+* **front:** XSS ([45966cf](https://github.com/GnomeShift/TiSk/commit/45966cf8f182cc7cad030678ea9b0007bb8ada52))
+* security ([#44](https://github.com/GnomeShift/TiSk/issues/44)) ([cba26c9](https://github.com/GnomeShift/TiSk/commit/cba26c9362bbe9eb3a2cc0795deb01c0bc2b6191))
+
+
+### ⚡ Performance
+
+* **front:** optimize `AuthContext` ([0ee0c68](https://github.com/GnomeShift/TiSk/commit/0ee0c6876c24da2c260fa92121469fb182824465))
+
+
+### ♻️ Refactoring
+
+* **back:** improve statistic queries ([e6aac80](https://github.com/GnomeShift/TiSk/commit/e6aac8038805846f339f5d82e588515f68cc0017))
+* **back:** make the first user an admin ([75b5d59](https://github.com/GnomeShift/TiSk/commit/75b5d59877dcaafed92066ba30cc2cfe27e2c3b5))
+* **back:** replace JWT subject from email to user id ([49480f6](https://github.com/GnomeShift/TiSk/commit/49480f648ace7ff8d79fff6df5537f1a1d6781ad))
+* **front:** improve char counter in `rich-text-editor` ([9b96c54](https://github.com/GnomeShift/TiSk/commit/9b96c54e8eb66ebba293f08fbd79fa9e276a8a6f))
+* **front:** improve code quality ([04515cc](https://github.com/GnomeShift/TiSk/commit/04515cccf804fa358049bdff5ad297ee15ea28e0))
+* **front:** improve validation ([d48e240](https://github.com/GnomeShift/TiSk/commit/d48e240160f8609a3024841e9220051ee616788c))
+* **front:** remove hover effect on non-interactive elements ([a8f779c](https://github.com/GnomeShift/TiSk/commit/a8f779c666f6168d617d4bc62fffd1345082785c))
+* **front:** remove page refresh on statistics period change ([fbc9f42](https://github.com/GnomeShift/TiSk/commit/fbc9f42bb8895871e08bc5eba28765ddff3d7484))
+* **front:** show registration datetime ([50ccd4a](https://github.com/GnomeShift/TiSk/commit/50ccd4a3f7f7698f4e88bc43c6d00296fa97377f))
+* **front:** slow down `Collapsible` animation ([5cb1e0f](https://github.com/GnomeShift/TiSk/commit/5cb1e0fc48ef9b8142848bb15a5b890e80d23b91))
+* **front:** ui rework ([fa4ff78](https://github.com/GnomeShift/TiSk/commit/fa4ff78f33f1222383bf2a3229f5117c8b09f139))
+* **front:** ui rework ([#38](https://github.com/GnomeShift/TiSk/issues/38)) ([2662f28](https://github.com/GnomeShift/TiSk/commit/2662f288e859a2f6cbf304656327b8dbcaab4908))
+* increase ticket description length to `10 000` ([2539b43](https://github.com/GnomeShift/TiSk/commit/2539b436bc9a56eb9ca62f6248ebce1901d6ff75))
+
+
+### 📚 Documentation
+
+* update `README` ([e14015e](https://github.com/GnomeShift/TiSk/commit/e14015e8a68358b71bfc12bda4e1a3315723e217))
+* update `README` ([#42](https://github.com/GnomeShift/TiSk/issues/42)) ([585e88d](https://github.com/GnomeShift/TiSk/commit/585e88d9864b49372a6ddeda9316ebdff17ccdbe))
+
+
+### 🧪 Tests
+
+* **back:** update tests ([56d8eb6](https://github.com/GnomeShift/TiSk/commit/56d8eb6471c45d5caf342bfaa872ccf8d62e3130))
+* **back:** update tests ([f6fcefd](https://github.com/GnomeShift/TiSk/commit/f6fcefd68232359381881060fa8d1e27dbc33a88))
+* update tests ([c10206f](https://github.com/GnomeShift/TiSk/commit/c10206f703956ce95fd00e3d11975996c8d7f97b))
+
+
+### 🧹 Chores
+
+* **deps:** bump axios ([8b8f16f](https://github.com/GnomeShift/TiSk/commit/8b8f16fff0bb146f5cbf5e2a291bff8c945e1494))
+* **deps:** bump axios from `1.12.2` to `1.13.5` ([#45](https://github.com/GnomeShift/TiSk/issues/45)) ([85417be](https://github.com/GnomeShift/TiSk/commit/85417bedd0304444532bb4bc0731e04533a74a34))
+* **deps:** bump markdown-it from `14.1.0` to `14.1.1` ([a96ccb6](https://github.com/GnomeShift/TiSk/commit/a96ccb66b112f84cc362bc0fa3826596f949dab7))
+* **deps:** bump markdown-it from `14.1.0` to `14.1.1` ([#48](https://github.com/GnomeShift/TiSk/issues/48)) ([3ca1b87](https://github.com/GnomeShift/TiSk/commit/3ca1b87cca0392ba472b05c2407fa07ebb05b23a))
+* release ([#47](https://github.com/GnomeShift/TiSk/issues/47)) ([4f59859](https://github.com/GnomeShift/TiSk/commit/4f598590a6fb926818ebd5a30781e0e5371facff))
+
+
+### 🖌️ Styles
+
+* **front:** restore ticket status position in `TicketDetail` ([297a1ec](https://github.com/GnomeShift/TiSk/commit/297a1ec1a016b92df624ebf96ee7f1a6f4b7494f))
+
+
+### 📦 Build
+
+* update build files ([9f4b470](https://github.com/GnomeShift/TiSk/commit/9f4b4703cacf9e7704c4fd26932b41a3a583d970))
+* update build files ([#41](https://github.com/GnomeShift/TiSk/issues/41)) ([50383e7](https://github.com/GnomeShift/TiSk/commit/50383e78ea95e56c9a45ce64a2a1d2814213fcdc))
+
 ## [1.12.6](https://github.com/GnomeShift/TiSk/compare/1.12.6...1.12.6) (2026-01-11)
 
 
