@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import axios from 'axios';
 import { AuthState, LoginDTO, RegisterDTO, ChangePasswordDTO } from '../types/auth';
 import { UserDTO } from '../types/user'
 import { authService } from '../services/authService';
@@ -16,6 +17,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 interface AuthProviderProps {
     children: ReactNode;
 }
+
+// Check if error is auth-related
+const isAuthError = (error: unknown): boolean => {
+    if (axios.isAxiosError(error) && error.response?.status) {
+        const status = error.response.status;
+        return status === 401 || status === 403;
+    }
+    return false;
+};
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [state, setState] = useState<AuthState>({
@@ -59,33 +69,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const accessToken = localStorage.getItem('access_token');
             const refreshToken = localStorage.getItem('refresh_token');
 
-            if (accessToken && refreshToken) {
-                try {
-                    const currentUser = await authService.getCurrentUser();
+            if (!accessToken || !refreshToken) {
+                if (isMounted) setState(prev => ({ ...prev, isLoading: false }));
+                return;
+            }
 
-                    if (isMounted) {
+            try {
+                const currentUser = await authService.getCurrentUser();
+
+                if (isMounted) {
+                    setState({
+                        user: currentUser,
+                        accessToken,
+                        refreshToken,
+                        isAuthenticated: true,
+                        isLoading: false
+                    });
+                }
+            } catch (error) {
+                if (!isMounted) return;
+                if (isAuthError(error)) {
+                    logout();
+                    return;
+                }
+
+                const cachedUser = localStorage.getItem('user');
+                if (cachedUser) {
+                    try {
                         setState({
-                            user: currentUser,
+                            user: JSON.parse(cachedUser),
                             accessToken,
                             refreshToken,
                             isAuthenticated: true,
                             isLoading: false
                         });
-                    }
-                } catch (error) {
-                    console.error('Auth check failed:', error);
-                    if (isMounted) {
-                        logout();
+                        return;
+                    } catch(err) {
+                        console.error(err)
                     }
                 }
-            } else {
-                if (isMounted) {
-                    setState(prev => ({ ...prev, isLoading: false }));
-                }
+                setState(prev => ({ ...prev, isLoading: false }));
             }
         };
 
-        checkAuth();
+        void checkAuth();
 
         return () => {
             isMounted = false;
@@ -133,8 +160,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await authService.changePassword(data);
     }, []);
 
+    const contextValue = useMemo<AuthContextType>(() => ({
+        ...state,
+        login,
+        register,
+        logout,
+        updateUser,
+        changePassword
+    }), [state, login, register, logout, updateUser, changePassword]);
+
     return (
-        <AuthContext.Provider value={{ ...state, login, register, logout, updateUser, changePassword }}>
+        <AuthContext.Provider value={contextValue}>
             {children}
         </AuthContext.Provider>
     );

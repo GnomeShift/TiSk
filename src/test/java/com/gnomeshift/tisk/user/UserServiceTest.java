@@ -1,5 +1,6 @@
 package com.gnomeshift.tisk.user;
 
+import com.gnomeshift.tisk.auth.AuthService;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ValidationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,6 +11,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -36,10 +39,17 @@ class UserServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private AuthService authService;
+
+    @Mock
+    private Authentication authentication;
+
     @InjectMocks
     private UserService userService;
 
     private User testUser;
+    private User adminUser;
     private UserDTO testUserDTO;
     private CreateUserDTO createUserDTO;
     private UpdateUserDTO updateUserDTO;
@@ -58,6 +68,19 @@ class UserServiceTest {
                 .department("IT")
                 .position("Developer")
                 .phoneNumber("+79001234567")
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        adminUser = User.builder()
+                .id(UUID.randomUUID())
+                .email("admin@example.com")
+                .password("encodedPassword")
+                .firstName("Admin")
+                .lastName("User")
+                .login("adminuser")
+                .role(UserRole.ADMIN)
+                .status(UserStatus.ACTIVE)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -120,8 +143,8 @@ class UserServiceTest {
         @Test
         @DisplayName("Return user by id")
         void shouldReturnUserById() {
-            when(userRepository.findById(any(UUID.class))).thenReturn(Optional.of(testUser));
-            when(userMapper.toDto(any(User.class))).thenReturn(testUserDTO);
+            when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+            when(userMapper.toDto(testUser)).thenReturn(testUserDTO);
 
             UserDTO result = userService.getUserById(testUser.getId());
 
@@ -133,7 +156,7 @@ class UserServiceTest {
         @DisplayName("Throw exception when user not found")
         void shouldThrowExceptionWhenUserNotFound() {
             UUID randomId = UUID.randomUUID();
-            when(userRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+            when(userRepository.findById(randomId)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> userService.getUserById(randomId))
                     .isInstanceOf(EntityNotFoundException.class)
@@ -147,8 +170,8 @@ class UserServiceTest {
         @Test
         @DisplayName("Return user by email")
         void shouldReturnUserByEmail() {
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-            when(userMapper.toDto(any(User.class))).thenReturn(testUserDTO);
+            when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+            when(userMapper.toDto(testUser)).thenReturn(testUserDTO);
 
             UserDTO result = userService.getUserByEmail("test@example.com");
 
@@ -159,7 +182,7 @@ class UserServiceTest {
         @Test
         @DisplayName("Throw exception when user not found by email")
         void shouldThrowExceptionWhenUserNotFoundByEmail() {
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+            when(userRepository.findByEmail("notfound@example.com")).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> userService.getUserByEmail("notfound@example.com"))
                     .isInstanceOf(EntityNotFoundException.class)
@@ -171,8 +194,9 @@ class UserServiceTest {
     @DisplayName("Create user Tests")
     class CreateUserTests {
         @Test
-        @DisplayName("Create user successfully")
-        void shouldCreateUser() {
+        @DisplayName("Create user successfully by admin")
+        void shouldCreateUserByAdmin() {
+            when(authentication.getPrincipal()).thenReturn(adminUser);
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(userRepository.existsByLogin(anyString())).thenReturn(false);
             when(userMapper.toEntity(any(CreateUserDTO.class))).thenReturn(testUser);
@@ -180,10 +204,56 @@ class UserServiceTest {
             when(userRepository.save(any(User.class))).thenReturn(testUser);
             when(userMapper.toDto(any(User.class))).thenReturn(testUserDTO);
 
-            UserDTO result = userService.createUser(createUserDTO);
+            UserDTO result = userService.createUser(createUserDTO, authentication);
 
             assertThat(result).isNotNull();
             verify(userRepository).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("Admin can set user role")
+        void shouldAllowAdminToSetRole() {
+            createUserDTO.setRole(UserRole.SUPPORT);
+
+            when(authentication.getPrincipal()).thenReturn(adminUser);
+            when(userRepository.existsByEmail(anyString())).thenReturn(false);
+            when(userRepository.existsByLogin(anyString())).thenReturn(false);
+            when(userMapper.toEntity(any(CreateUserDTO.class))).thenReturn(testUser);
+            when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+            when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+                User saved = invocation.getArgument(0);
+                assertThat(saved.getRole()).isEqualTo(UserRole.SUPPORT);
+                return saved;
+            });
+            when(userMapper.toDto(any(User.class))).thenReturn(testUserDTO);
+
+            userService.createUser(createUserDTO, authentication);
+
+            verify(userRepository).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("Generate login when not provided")
+        void shouldGenerateLoginWhenNotProvided() {
+            createUserDTO.setLogin(null);
+            User userWithoutLogin = User.builder()
+                    .email(createUserDTO.getEmail())
+                    .firstName(createUserDTO.getFirstName())
+                    .lastName(createUserDTO.getLastName())
+                    .login(null)
+                    .build();
+
+            when(authentication.getPrincipal()).thenReturn(adminUser);
+            when(userRepository.existsByEmail(anyString())).thenReturn(false);
+            when(userMapper.toEntity(any(CreateUserDTO.class))).thenReturn(userWithoutLogin);
+            when(authService.generateLogin("New", "User")).thenReturn("nuser");
+            when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+            when(userRepository.save(any(User.class))).thenReturn(testUser);
+            when(userMapper.toDto(any(User.class))).thenReturn(testUserDTO);
+
+            userService.createUser(createUserDTO, authentication);
+
+            verify(authService).generateLogin("New", "User");
         }
 
         @Test
@@ -191,7 +261,7 @@ class UserServiceTest {
         void shouldThrowExceptionWhenEmailExists() {
             when(userRepository.existsByEmail(anyString())).thenReturn(true);
 
-            assertThatThrownBy(() -> userService.createUser(createUserDTO))
+            assertThatThrownBy(() -> userService.createUser(createUserDTO, authentication))
                     .isInstanceOf(ValidationException.class)
                     .hasMessage("Email already exists");
 
@@ -204,7 +274,7 @@ class UserServiceTest {
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(userRepository.existsByLogin(anyString())).thenReturn(true);
 
-            assertThatThrownBy(() -> userService.createUser(createUserDTO))
+            assertThatThrownBy(() -> userService.createUser(createUserDTO, authentication))
                     .isInstanceOf(ValidationException.class)
                     .hasMessage("Login already exists");
 
@@ -216,17 +286,69 @@ class UserServiceTest {
     @DisplayName("Update user Tests")
     class UpdateUserTests {
         @Test
-        @DisplayName("Update user successfully")
-        void shouldUpdateUser() {
-            when(userRepository.findById(any(UUID.class))).thenReturn(Optional.of(testUser));
+        @DisplayName("Update user successfully by self")
+        void shouldUpdateUserBySelf() {
+            when(authentication.getPrincipal()).thenReturn(testUser);
+            when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
             when(userRepository.save(any(User.class))).thenReturn(testUser);
             when(userMapper.toDto(any(User.class))).thenReturn(testUserDTO);
 
-            UserDTO result = userService.updateUser(testUser.getId(), updateUserDTO);
+            UserDTO result = userService.updateUser(testUser.getId(), updateUserDTO, authentication);
 
             assertThat(result).isNotNull();
-            verify(userMapper).updateUserFromDto(any(UpdateUserDTO.class), any(User.class));
+            verify(userMapper).updateUserFromDto(updateUserDTO, testUser);
+            verify(userRepository).save(testUser);
+        }
+
+        @Test
+        @DisplayName("Update user successfully by admin")
+        void shouldUpdateUserByAdmin() {
+            when(authentication.getPrincipal()).thenReturn(adminUser);
+            when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+            when(userRepository.save(any(User.class))).thenReturn(testUser);
+            when(userMapper.toDto(any(User.class))).thenReturn(testUserDTO);
+
+            UserDTO result = userService.updateUser(testUser.getId(), updateUserDTO, authentication);
+
+            assertThat(result).isNotNull();
+        }
+
+        @Test
+        @DisplayName("Admin can update role and status")
+        void shouldAllowAdminToUpdateRoleAndStatus() {
+            updateUserDTO.setRole(UserRole.SUPPORT);
+            updateUserDTO.setStatus(UserStatus.SUSPENDED);
+
+            when(authentication.getPrincipal()).thenReturn(adminUser);
+            when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+            when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+                User saved = invocation.getArgument(0);
+                assertThat(saved.getRole()).isEqualTo(UserRole.SUPPORT);
+                assertThat(saved.getStatus()).isEqualTo(UserStatus.SUSPENDED);
+                return saved;
+            });
+            when(userMapper.toDto(any(User.class))).thenReturn(testUserDTO);
+
+            userService.updateUser(testUser.getId(), updateUserDTO, authentication);
+
             verify(userRepository).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("Regular user cannot update other users")
+        void shouldNotAllowRegularUserToUpdateOthers() {
+            User otherUser = User.builder()
+                    .id(UUID.randomUUID())
+                    .role(UserRole.USER)
+                    .build();
+
+            when(authentication.getPrincipal()).thenReturn(otherUser);
+
+            assertThatThrownBy(() -> userService.updateUser(testUser.getId(), updateUserDTO, authentication))
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessage("Access Denied");
+
+            verify(userRepository, never()).save(any(User.class));
         }
 
         @Test
@@ -234,20 +356,40 @@ class UserServiceTest {
         void shouldThrowExceptionWhenUpdatingToExistingEmail() {
             updateUserDTO.setEmail("existing@example.com");
 
-            when(userRepository.findById(any(UUID.class))).thenReturn(Optional.of(testUser));
+            when(authentication.getPrincipal()).thenReturn(testUser);
+            when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
             when(userRepository.existsByEmail("existing@example.com")).thenReturn(true);
 
-            assertThatThrownBy(() -> userService.updateUser(testUser.getId(), updateUserDTO))
+            assertThatThrownBy(() -> userService.updateUser(testUser.getId(), updateUserDTO, authentication))
                     .isInstanceOf(ValidationException.class)
                     .hasMessage("Email already exists");
+
+            verify(userRepository, never()).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("Throw exception when updating to existing login")
+        void shouldThrowExceptionWhenUpdatingToExistingLogin() {
+            updateUserDTO.setLogin("existinglogin");
+
+            when(authentication.getPrincipal()).thenReturn(testUser);
+            when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+            when(userRepository.existsByLogin("existinglogin")).thenReturn(true);
+
+            assertThatThrownBy(() -> userService.updateUser(testUser.getId(), updateUserDTO, authentication))
+                    .isInstanceOf(ValidationException.class)
+                    .hasMessage("Login already exists");
+
+            verify(userRepository, never()).save(any(User.class));
         }
 
         @Test
         @DisplayName("Throw exception when user not found")
         void shouldThrowExceptionWhenUserNotFound() {
+            when(authentication.getPrincipal()).thenReturn(adminUser);
             when(userRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> userService.updateUser(UUID.randomUUID(), updateUserDTO))
+            assertThatThrownBy(() -> userService.updateUser(UUID.randomUUID(), updateUserDTO, authentication))
                     .isInstanceOf(EntityNotFoundException.class);
         }
     }
@@ -258,8 +400,8 @@ class UserServiceTest {
         @Test
         @DisplayName("Delete user successfully")
         void shouldDeleteUser() {
-            when(userRepository.existsById(any(UUID.class))).thenReturn(true);
-            doNothing().when(userRepository).deleteById(any(UUID.class));
+            when(userRepository.existsById(testUser.getId())).thenReturn(true);
+            doNothing().when(userRepository).deleteById(testUser.getId());
 
             assertThatCode(() -> userService.deleteUser(testUser.getId()))
                     .doesNotThrowAnyException();
@@ -270,10 +412,12 @@ class UserServiceTest {
         @Test
         @DisplayName("Throw exception when user not found")
         void shouldThrowExceptionWhenUserNotFound() {
-            when(userRepository.existsById(any(UUID.class))).thenReturn(false);
+            UUID nonExistentId = UUID.randomUUID();
+            when(userRepository.existsById(nonExistentId)).thenReturn(false);
 
-            assertThatThrownBy(() -> userService.deleteUser(UUID.randomUUID()))
-                    .isInstanceOf(EntityNotFoundException.class);
+            assertThatThrownBy(() -> userService.deleteUser(nonExistentId))
+                    .isInstanceOf(EntityNotFoundException.class)
+                    .hasMessageContaining("User not found with id");
 
             verify(userRepository, never()).deleteById(any(UUID.class));
         }
@@ -285,22 +429,26 @@ class UserServiceTest {
         @Test
         @DisplayName("Change user status successfully")
         void shouldChangeUserStatus() {
-            when(userRepository.findById(any(UUID.class))).thenReturn(Optional.of(testUser));
+            when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
             when(userRepository.save(any(User.class))).thenReturn(testUser);
 
             assertThatCode(() -> userService.changeUserStatus(testUser.getId(), UserStatus.SUSPENDED))
                     .doesNotThrowAnyException();
 
-            verify(userRepository).save(any(User.class));
+            verify(userRepository).save(argThat(user -> user.getStatus() == UserStatus.SUSPENDED));
         }
 
         @Test
         @DisplayName("Throw exception when user not found")
         void shouldThrowExceptionWhenUserNotFound() {
-            when(userRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+            UUID nonExistentId = UUID.randomUUID();
+            when(userRepository.findById(nonExistentId)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> userService.changeUserStatus(UUID.randomUUID(), UserStatus.ACTIVE))
-                    .isInstanceOf(EntityNotFoundException.class);
+            assertThatThrownBy(() -> userService.changeUserStatus(nonExistentId, UserStatus.ACTIVE))
+                    .isInstanceOf(EntityNotFoundException.class)
+                    .hasMessageContaining("User not found with id");
+
+            verify(userRepository, never()).save(any(User.class));
         }
     }
 }

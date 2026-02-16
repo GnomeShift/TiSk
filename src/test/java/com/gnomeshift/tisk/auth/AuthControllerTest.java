@@ -3,6 +3,7 @@ package com.gnomeshift.tisk.auth;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gnomeshift.tisk.security.SecurityConfig;
 import com.gnomeshift.tisk.user.UserDTO;
+import com.gnomeshift.tisk.user.UserRepository;
 import com.gnomeshift.tisk.user.UserRole;
 import com.gnomeshift.tisk.user.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +47,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private AuthenticationProvider authenticationProvider;
+
+    @MockitoBean
+    private UserRepository userRepository;
 
     private RegisterDTO registerDTO;
     private LoginDTO loginDTO;

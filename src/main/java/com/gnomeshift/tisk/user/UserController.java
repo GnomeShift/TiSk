@@ -42,26 +42,28 @@ public class UserController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<UserDTO> createUser(@Valid @RequestBody CreateUserDTO createUserDTO) {
-        UserDTO createdUser = userService.createUser(createUserDTO);
+    public ResponseEntity<UserDTO> createUser(@Valid @RequestBody CreateUserDTO createUserDTO,
+                                              Authentication authentication) {
+        UserDTO createdUser = userService.createUser(createUserDTO, authentication);
         return ResponseEntity.status(HttpStatus.CREATED).location(URI.create("/api/users/" + createdUser.getId())).body(createdUser);
     }
 
     @PatchMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
-    public ResponseEntity<UserDTO> updateUser(@PathVariable UUID id, @Valid @RequestBody UpdateUserDTO updateUserDTO) {
-        return ResponseEntity.ok(userService.updateUser(id, updateUserDTO));
+    public ResponseEntity<UserDTO> updateUser(@PathVariable UUID id, @Valid @RequestBody UpdateUserDTO updateUserDTO,
+                                              Authentication authentication) {
+        return ResponseEntity.ok(userService.updateUser(id, updateUserDTO, authentication));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') and #id != authentication.principal.id")
     public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') and #id != authentication.principal.id")
     public ResponseEntity<Void> changeUserStatus(@PathVariable UUID id, @RequestParam UserStatus status) {
         userService.changeUserStatus(id, status);
         return ResponseEntity.noContent().build();

@@ -5,6 +5,8 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,20 @@ public class UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
+    // Get current user from session
+    private User getCurrentUser(Authentication authentication) {
+        if (authentication != null && authentication.getPrincipal() instanceof User user) {
+            return user;
+        }
+
+        log.warn("Current user not found");
+        throw new EntityNotFoundException("User not found");
+    }
+
+    private boolean isAdmin(User user) {
+        return user.getRole() == UserRole.ADMIN;
+    }
+
     @Transactional(readOnly = true)
     public List<UserDTO> getAllUsers() {
         return userMapper.toDtoList(userRepository.findAll());
@@ -29,64 +45,83 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public UserDTO getUserById(UUID id) {
-        User user = userRepository.findById(id)
+        return userRepository.findById(id).map(userMapper::toDto)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
-        return userMapper.toDto(user);
     }
 
     @Transactional(readOnly = true)
     public UserDTO getUserByEmail(String email) {
-        User user = userRepository.findByEmail(email)
+        return userRepository.findByEmail(email).map(userMapper::toDto)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + email));
-        return userMapper.toDto(user);
     }
 
-    public UserDTO createUser(CreateUserDTO createUserDTO) {
+    @Transactional()
+    public UserDTO createUser(CreateUserDTO createUserDTO, Authentication authentication) {
         log.info("Creating new user with email: {}", createUserDTO.getEmail());
 
         if (userRepository.existsByEmail(createUserDTO.getEmail())) {
             throw new ValidationException("Email already exists");
         }
-
         if (createUserDTO.getLogin() != null &&
                 userRepository.existsByLogin(createUserDTO.getLogin())) {
             throw new ValidationException("Login already exists");
         }
 
-        User user = userMapper.toEntity(createUserDTO);
-        user.setPassword(passwordEncoder.encode(createUserDTO.getPassword()));
+        User userToCreate = userMapper.toEntity(createUserDTO);
+        userToCreate.setPassword(passwordEncoder.encode(createUserDTO.getPassword()));
 
-        if (user.getLogin() == null) {
-            user.setLogin(authService.generateLogin(createUserDTO.getFirstName(), createUserDTO.getLastName()));
+        if (isAdmin(getCurrentUser(authentication))) {
+            if (createUserDTO.getRole() != null) {
+                userToCreate.setRole(createUserDTO.getRole());
+            }
+        }
+        if (userToCreate.getLogin() == null) {
+            userToCreate.setLogin(authService.generateLogin(createUserDTO.getFirstName(), createUserDTO.getLastName()));
         }
 
-        User savedUser = userRepository.save(user);
+        User savedUser = userRepository.save(userToCreate);
         log.info("User created successfully with id: {}", savedUser.getId());
         return userMapper.toDto(savedUser);
     }
 
-    public UserDTO updateUser(UUID id, UpdateUserDTO updateUserDTO) {
+    @Transactional()
+    public UserDTO updateUser(UUID id, UpdateUserDTO updateUserDTO, Authentication authentication) {
         log.info("Updating user with id: {}", id);
 
-        User user = userRepository.findById(id)
+        User currentUser = getCurrentUser(authentication);
+
+        // User except admin can only edit yourself
+        if (!isAdmin(currentUser) && !currentUser.getId().equals(id)) {
+            throw new AccessDeniedException("Access Denied");
+        }
+
+        User userToUpdate = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
 
         if (updateUserDTO.getEmail() != null &&
-                !updateUserDTO.getEmail().equals(user.getEmail()) &&
+                !updateUserDTO.getEmail().equals(userToUpdate.getEmail()) &&
                 userRepository.existsByEmail(updateUserDTO.getEmail())) {
             throw new ValidationException("Email already exists");
         }
-
-        if (updateUserDTO.getLogin() != null && !updateUserDTO.getLogin().equals(user.getLogin()) &&
+        if (updateUserDTO.getLogin() != null && !updateUserDTO.getLogin().equals(userToUpdate.getLogin()) &&
                 userRepository.existsByLogin(updateUserDTO.getLogin())) {
             throw new ValidationException("Login already exists");
         }
 
-        userMapper.updateUserFromDto(updateUserDTO, user);
+        userMapper.updateUserFromDto(updateUserDTO, userToUpdate);
 
-        User savedUser = userRepository.save(user);
+        // If user isn't admin - ignore fields
+        if (isAdmin(currentUser)) {
+            if (updateUserDTO.getRole() != null) {
+                userToUpdate.setRole(updateUserDTO.getRole());
+            }
+            if (updateUserDTO.getStatus() != null) {
+                userToUpdate.setStatus(updateUserDTO.getStatus());
+            }
+        }
+
         log.info("User updated successfully: {}", id);
-        return userMapper.toDto(savedUser);
+        return userMapper.toDto(userRepository.save(userToUpdate));
     }
 
     public void deleteUser(UUID id) {

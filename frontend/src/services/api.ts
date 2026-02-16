@@ -1,5 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { env } from './env';
+import { getErrorMessage } from './errorTranslator';
+import { toast } from './toast'
 
 const getApiUrl = () => {
     return env.apiUrl;
@@ -24,6 +26,7 @@ const subscribeRefresh = (callback: (token: string) => void) => {
 const onRefreshed = (newToken: string) => {
     refreshSubscribers.forEach(callback => callback(newToken));
     refreshSubscribers = [];
+    failedQueue = [];
 };
 
 const onRefreshFailed = (error: Error) => {
@@ -34,19 +37,8 @@ const onRefreshFailed = (error: Error) => {
 
 // Centralized logout
 const triggerLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-
     // Event for AuthContext
     window.dispatchEvent(new CustomEvent('auth:logout'));
-
-    // Fallback redirect
-    setTimeout(() => {
-        if (window.location.pathname !== '/login') {
-            window.location.href = '/login';
-        }
-    }, 100);
 };
 
 // Request interceptor
@@ -64,6 +56,7 @@ api.interceptors.request.use(
 // Response interceptor
 interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
     _retry?: boolean;
+    _skipGlobalError?: boolean;
 }
 
 api.interceptors.response.use(
@@ -71,8 +64,26 @@ api.interceptors.response.use(
     async (error: AxiosError) => {
         const originalRequest = error.config as CustomAxiosRequestConfig;
 
-        // Don't touch non-401 errors
-        if (!originalRequest || error.response?.status !== 401) {
+        // Global error handler
+        if (!originalRequest?._skipGlobalError) {
+            if (!error.response || error.response.status >= 500) {
+                const message = getErrorMessage(error);
+                toast.error(message);
+                return Promise.reject(error);
+            }
+        }
+
+        // Intercept 401 for token refresh
+        if (error.response?.status !== 401) {
+            return Promise.reject(error);
+        }
+
+        // Don't intercept auth endpoints
+        const isAuthEndpoint = ['/auth/login', '/auth/register'].some(
+            endpoint => originalRequest.url?.endsWith(endpoint)
+        );
+
+        if (isAuthEndpoint) {
             return Promise.reject(error);
         }
 
@@ -81,7 +92,7 @@ api.interceptors.response.use(
             return Promise.reject(error);
         }
 
-        // If request returned 401 - logout
+        // If refresh request failed - logout
         if (originalRequest.url?.includes('/auth/refresh')) {
             triggerLogout();
             return Promise.reject(error);

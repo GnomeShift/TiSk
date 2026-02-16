@@ -12,9 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
@@ -101,6 +99,8 @@ class AuthServiceTest {
         void shouldRegisterNewUser() {
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(userRepository.existsByLogin(anyString())).thenReturn(false);
+            // Not the 1st user
+            when(userRepository.count()).thenReturn(1L);
             when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
             when(userRepository.save(any(User.class))).thenReturn(testUser);
             when(jwtService.generateAccessToken(any(User.class))).thenReturn("accessToken");
@@ -117,6 +117,29 @@ class AuthServiceTest {
             assertThat(response.getUser()).isEqualTo(userDTO);
 
             verify(userRepository).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("First registered user becomes ADMIN")
+        void shouldMakeFirstUserAdmin() {
+            when(userRepository.existsByEmail(anyString())).thenReturn(false);
+            when(userRepository.existsByLogin(anyString())).thenReturn(false);
+            // 1st user
+            when(userRepository.count()).thenReturn(0L);
+            when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+            when(userRepository.save(any(User.class))).thenReturn(testUser);
+            when(jwtService.generateAccessToken(any(User.class))).thenReturn("accessToken");
+            when(jwtService.generateRefreshToken(any(User.class))).thenReturn("refreshToken");
+            when(jwtProperties.getAccessTokenExpiration()).thenReturn(3600000L);
+            when(userMapper.toDto(any(User.class))).thenReturn(userDTO);
+
+            authService.register(registerDTO);
+
+            ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(userCaptor.capture());
+
+            User savedUser = userCaptor.getValue();
+            assertThat(savedUser.getRole()).isEqualTo(UserRole.ADMIN);
         }
 
         @Test
@@ -150,6 +173,7 @@ class AuthServiceTest {
             registerDTO.setLogin(null);
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(userRepository.existsByLogin(anyString())).thenReturn(false);
+            when(userRepository.count()).thenReturn(1L);
             when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
             when(userRepository.save(any(User.class))).thenReturn(testUser);
             when(jwtService.generateAccessToken(any(User.class))).thenReturn("accessToken");
@@ -164,6 +188,7 @@ class AuthServiceTest {
 
             User savedUser = userCaptor.getValue();
             assertThat(savedUser.getLogin()).isNotNull();
+            assertThat(savedUser.getLogin()).isEqualTo("nuser");
         }
     }
 
@@ -176,17 +201,20 @@ class AuthServiceTest {
             when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                     .thenReturn(new UsernamePasswordAuthenticationToken(testUser, null));
             when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
+            when(userRepository.save(any(User.class))).thenReturn(testUser);
             when(jwtService.generateAccessToken(any(User.class))).thenReturn("accessToken");
             when(jwtService.generateRefreshToken(any(User.class))).thenReturn("refreshToken");
             when(jwtProperties.getAccessTokenExpiration()).thenReturn(3600000L);
             when(userMapper.toDto(any(User.class))).thenReturn(userDTO);
-            when(userRepository.save(any(User.class))).thenReturn(testUser);
 
             AuthResponseDTO response = authService.login(loginDTO);
 
             assertThat(response).isNotNull();
             assertThat(response.getAccessToken()).isEqualTo("accessToken");
             assertThat(response.getRefreshToken()).isEqualTo("refreshToken");
+
+            // Verify that lastLoginAt is updated
+            verify(userRepository).save(any(User.class));
         }
 
         @Test
@@ -201,6 +229,17 @@ class AuthServiceTest {
         }
 
         @Test
+        @DisplayName("Throw exception when user is disabled")
+        void shouldThrowExceptionWhenUserDisabled() {
+            when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                    .thenThrow(new DisabledException("User is disabled"));
+
+            assertThatThrownBy(() -> authService.login(loginDTO))
+                    .isInstanceOf(DisabledException.class)
+                    .hasMessage("User account isn't active");
+        }
+
+        @Test
         @DisplayName("Throw exception when user not found")
         void shouldThrowExceptionWhenUserNotFound() {
             when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
@@ -209,20 +248,7 @@ class AuthServiceTest {
 
             assertThatThrownBy(() -> authService.login(loginDTO))
                     .isInstanceOf(EntityNotFoundException.class)
-                    .hasMessage("User not found");
-        }
-
-        @Test
-        @DisplayName("Throw exception when user isn't active")
-        void shouldThrowExceptionWhenUserNotActive() {
-            testUser.setStatus(UserStatus.INACTIVE);
-            when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                    .thenReturn(new UsernamePasswordAuthenticationToken(testUser, null));
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-
-            assertThatThrownBy(() -> authService.login(loginDTO))
-                    .isInstanceOf(ValidationException.class)
-                    .hasMessage("User account isn't active");
+                    .hasMessageContaining("User not found with email");
         }
     }
 
@@ -234,10 +260,12 @@ class AuthServiceTest {
         void shouldRefreshToken() {
             RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO("validRefreshToken");
 
-            when(jwtService.extractEmail(anyString())).thenReturn("test@example.com");
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
+            when(jwtService.extractId(anyString())).thenReturn("bb5cc36d-9fe0-4e6e-b6cb-f81173006710");
+            when(jwtService.isRefreshToken(anyString())).thenReturn(true);
+            when(userRepository.findById(UUID.fromString("bb5cc36d-9fe0-4e6e-b6cb-f81173006710"))).thenReturn(Optional.of(testUser));
             when(jwtService.isTokenValid(anyString(), any(User.class))).thenReturn(true);
             when(jwtService.generateAccessToken(any(User.class))).thenReturn("newAccessToken");
+            when(jwtService.generateRefreshToken(any(User.class))).thenReturn("newRefreshToken");
             when(jwtProperties.getAccessTokenExpiration()).thenReturn(3600000L);
             when(userMapper.toDto(any(User.class))).thenReturn(userDTO);
 
@@ -245,7 +273,64 @@ class AuthServiceTest {
 
             assertThat(response).isNotNull();
             assertThat(response.getAccessToken()).isEqualTo("newAccessToken");
-            assertThat(response.getRefreshToken()).isEqualTo("validRefreshToken");
+            // Token rotation
+            assertThat(response.getRefreshToken()).isEqualTo("newRefreshToken");
+        }
+
+        @Test
+        @DisplayName("Throw exception when token is not a refresh token")
+        void shouldThrowExceptionForNonRefreshToken() {
+            RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO("accessToken");
+
+            when(jwtService.extractId(anyString())).thenReturn("bb5cc36d-9fe0-4e6e-b6cb-f81173006710");
+            when(jwtService.isRefreshToken(anyString())).thenReturn(false);
+
+            assertThatThrownBy(() -> authService.refreshToken(refreshTokenDTO))
+                    .isInstanceOf(BadCredentialsException.class)
+                    .hasMessage("Token isn't a refresh token");
+        }
+
+        @Test
+        @DisplayName("Throw exception when user not found")
+        void shouldThrowExceptionWhenUserNotFound() {
+            RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO("validRefreshToken");
+
+            when(jwtService.extractId(anyString())).thenReturn("bb5cc36d-9fe0-4e6e-b6cb-f81173006710");
+            when(jwtService.isRefreshToken(anyString())).thenReturn(true);
+            when(userRepository.findById(UUID.fromString("bb5cc36d-9fe0-4e6e-b6cb-f81173006710"))).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> authService.refreshToken(refreshTokenDTO))
+                    .isInstanceOf(EntityNotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("Throw exception when user is disabled")
+        void shouldThrowExceptionWhenUserDisabled() {
+            RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO("validRefreshToken");
+            testUser.setStatus(UserStatus.INACTIVE);
+
+            when(jwtService.extractId(anyString())).thenReturn("bb5cc36d-9fe0-4e6e-b6cb-f81173006710");
+            when(jwtService.isRefreshToken(anyString())).thenReturn(true);
+            when(userRepository.findById(UUID.fromString("bb5cc36d-9fe0-4e6e-b6cb-f81173006710"))).thenReturn(Optional.of(testUser));
+
+            assertThatThrownBy(() -> authService.refreshToken(refreshTokenDTO))
+                    .isInstanceOf(DisabledException.class)
+                    .hasMessage("User account isn't active");
+        }
+
+        @Test
+        @DisplayName("Throw exception when user is locked")
+        void shouldThrowExceptionWhenUserLocked() {
+            RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO("validRefreshToken");
+            testUser.setStatus(UserStatus.SUSPENDED);
+
+            when(jwtService.extractId(anyString())).thenReturn("bb5cc36d-9fe0-4e6e-b6cb-f81173006710");
+            when(jwtService.isRefreshToken(anyString())).thenReturn(true);
+            when(userRepository.findById(UUID.fromString("bb5cc36d-9fe0-4e6e-b6cb-f81173006710"))).thenReturn(Optional.of(testUser));
+
+            assertThatThrownBy(() -> authService.refreshToken(refreshTokenDTO))
+                    .isInstanceOf(DisabledException.class)
+                    .hasMessage("User account isn't active");
         }
 
         @Test
@@ -253,8 +338,9 @@ class AuthServiceTest {
         void shouldThrowExceptionForInvalidRefreshToken() {
             RefreshTokenDTO refreshTokenDTO = new RefreshTokenDTO("invalidRefreshToken");
 
-            when(jwtService.extractEmail(anyString())).thenReturn("test@example.com");
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
+            when(jwtService.extractId(anyString())).thenReturn("bb5cc36d-9fe0-4e6e-b6cb-f81173006710");
+            when(jwtService.isRefreshToken(anyString())).thenReturn(true);
+            when(userRepository.findById(UUID.fromString("bb5cc36d-9fe0-4e6e-b6cb-f81173006710"))).thenReturn(Optional.of(testUser));
             when(jwtService.isTokenValid(anyString(), any(User.class))).thenReturn(false);
 
             assertThatThrownBy(() -> authService.refreshToken(refreshTokenDTO))
@@ -275,8 +361,8 @@ class AuthServiceTest {
             changePasswordDTO.setConfirmPassword("NewPassword123");
 
             when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-            when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
-            when(passwordEncoder.encode(anyString())).thenReturn("newEncodedPassword");
+            when(passwordEncoder.matches("oldPassword", testUser.getPassword())).thenReturn(true);
+            when(passwordEncoder.encode("NewPassword123")).thenReturn("newEncodedPassword");
             when(userRepository.save(any(User.class))).thenReturn(testUser);
 
             assertThatCode(() -> authService.changePassword("test@example.com", changePasswordDTO))
@@ -296,6 +382,22 @@ class AuthServiceTest {
             assertThatThrownBy(() -> authService.changePassword("test@example.com", changePasswordDTO))
                     .isInstanceOf(ValidationException.class)
                     .hasMessage("Passwords don't match");
+
+            verify(userRepository, never()).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("Throw exception when user not found")
+        void shouldThrowExceptionWhenUserNotFound() {
+            ChangePasswordDTO changePasswordDTO = new ChangePasswordDTO();
+            changePasswordDTO.setCurrentPassword("oldPassword");
+            changePasswordDTO.setNewPassword("NewPassword123");
+            changePasswordDTO.setConfirmPassword("NewPassword123");
+
+            when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> authService.changePassword("notfound@example.com", changePasswordDTO))
+                    .isInstanceOf(EntityNotFoundException.class);
         }
 
         @Test
@@ -307,11 +409,13 @@ class AuthServiceTest {
             changePasswordDTO.setConfirmPassword("NewPassword123");
 
             when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-            when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
+            when(passwordEncoder.matches("wrongPassword", testUser.getPassword())).thenReturn(false);
 
             assertThatThrownBy(() -> authService.changePassword("test@example.com", changePasswordDTO))
                     .isInstanceOf(ValidationException.class)
                     .hasMessage("Current password incorrect");
+
+            verify(userRepository, never()).save(any(User.class));
         }
     }
 
@@ -321,7 +425,7 @@ class AuthServiceTest {
         @Test
         @DisplayName("Generate login from name")
         void shouldGenerateLoginFromName() {
-            when(userRepository.existsByLogin(anyString())).thenReturn(false);
+            when(userRepository.existsByLogin("tuser")).thenReturn(false);
 
             String login = authService.generateLogin("Test", "User");
 
@@ -337,6 +441,19 @@ class AuthServiceTest {
             String login = authService.generateLogin("Test", "User");
 
             assertThat(login).isEqualTo("tuser1");
+        }
+
+        @Test
+        @DisplayName("Increment counter until unique login found")
+        void shouldIncrementCounterUntilUniqueLoginFound() {
+            when(userRepository.existsByLogin("tuser")).thenReturn(true);
+            when(userRepository.existsByLogin("tuser1")).thenReturn(true);
+            when(userRepository.existsByLogin("tuser2")).thenReturn(true);
+            when(userRepository.existsByLogin("tuser3")).thenReturn(false);
+
+            String login = authService.generateLogin("Test", "User");
+
+            assertThat(login).isEqualTo("tuser3");
         }
     }
 }

@@ -1,7 +1,10 @@
 package com.gnomeshift.tisk.auth;
 
+import com.gnomeshift.tisk.user.UserRepository;
+import com.gnomeshift.tisk.user.User;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,24 +14,23 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
+    private final UserRepository userRepository;
 
     @Qualifier("handlerExceptionResolver")
     private final HandlerExceptionResolver resolver;
@@ -50,49 +52,61 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt = authHeader.substring(7);
 
         try {
-            String userEmail = jwtService.extractEmail(jwt);
+            final UUID userId = UUID.fromString(jwtService.extractId(jwt));
 
-            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+            if (SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                if (jwtService.isTokenValid(jwt, userDetails)) {
+                // Check for refresh token instead of access
+                if (!jwtService.isAccessToken(jwt)) {
+                    throw new MalformedJwtException("Refresh token can't be used for authentication");
+                }
+
+                // Get user from DB
+                User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+
+                // Check status
+                if (!user.isAccountNonLocked()) {
+                    throw new LockedException("User account is locked");
+                }
+
+                // Check signature and expiration
+                if (jwtService.isTokenValid(jwt, user)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails,
+                            user,
                             null,
-                            userDetails.getAuthorities()
+                            user.getAuthorities()
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
+            filterChain.doFilter(request, response);
         }
         catch (ExpiredJwtException e) {
             log.warn("JWT token expired: {}", e.getMessage());
             resolver.resolveException(request, response, null, e);
-            return;
         }
-        catch (MalformedJwtException e) {
+        catch (MalformedJwtException | IllegalArgumentException e) {
             log.warn("Invalid JWT token: {}", e.getMessage());
             resolver.resolveException(request, response, null, e);
-            return;
         }
-        catch (UsernameNotFoundException e) {
+        catch (EntityNotFoundException e) {
             log.warn("User not found: {}", e.getMessage());
             resolver.resolveException(request, response, null, e);
-            return;
         }
         catch (Exception e) {
             log.error("JWT authentication error: {}", e.getMessage());
             resolver.resolveException(request, response, null, e);
-            return;
         }
-
-        filterChain.doFilter(request, response);
     }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/api/auth") || path.startsWith("/error");
+        return path.equals("/api/auth/register")
+                || path.equals("/api/auth/login")
+                || path.equals("/api/auth/refresh")
+                || path.startsWith("/error");
     }
 }

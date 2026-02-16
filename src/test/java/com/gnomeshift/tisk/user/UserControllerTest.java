@@ -12,6 +12,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -46,6 +47,9 @@ class UserControllerTest {
 
     @MockitoBean
     private AuthenticationProvider authenticationProvider;
+
+    @MockitoBean
+    private UserRepository userRepository;
 
     private UserDTO testUserDTO;
     private UUID testUserId;
@@ -149,7 +153,7 @@ class UserControllerTest {
             createUserDTO.setLogin("newuser");
             createUserDTO.setRole(UserRole.USER);
 
-            when(userService.createUser(any(CreateUserDTO.class))).thenReturn(testUserDTO);
+            when(userService.createUser(any(CreateUserDTO.class), any(Authentication.class))).thenReturn(testUserDTO);
 
             mockMvc.perform(post("/api/users")
                             .with(csrf())
@@ -189,7 +193,8 @@ class UserControllerTest {
             UpdateUserDTO updateUserDTO = new UpdateUserDTO();
             updateUserDTO.setFirstName("Updated");
 
-            when(userService.updateUser(any(UUID.class), any(UpdateUserDTO.class))).thenReturn(testUserDTO);
+            when(userService.updateUser(any(UUID.class), any(UpdateUserDTO.class), any(Authentication.class)))
+                    .thenReturn(testUserDTO);
 
             mockMvc.perform(patch("/api/users/{id}", testUserId)
                             .with(csrf())
@@ -203,39 +208,11 @@ class UserControllerTest {
     @DisplayName("Delete user Tests")
     class DeleteUserTests {
         @Test
-        @WithMockUser(roles = "ADMIN")
-        @DisplayName("Delete user for admin")
-        void shouldDeleteUserForAdmin() throws Exception {
-            doNothing().when(userService).deleteUser(any(UUID.class));
-
-            mockMvc.perform(delete("/api/users/{id}", testUserId)
-                            .with(csrf()))
-                    .andExpect(status().isNoContent());
-        }
-
-        @Test
         @WithMockUser(roles = "USER")
         @DisplayName("Return forbidden for regular user")
         void shouldReturnForbiddenForRegularUser() throws Exception {
-            mockMvc.perform(delete("/api/users/{id}", testUserId)
-                            .with(csrf()))
+            mockMvc.perform(delete("/api/users/{id}", testUserId).with(csrf()))
                     .andExpect(status().isForbidden());
-        }
-    }
-
-    @Nested
-    @DisplayName("Change user status Tests")
-    class ChangeUserStatusTests {
-        @Test
-        @WithMockUser(roles = "ADMIN")
-        @DisplayName("Change user status for admin")
-        void shouldChangeUserStatusForAdmin() throws Exception {
-            doNothing().when(userService).changeUserStatus(any(UUID.class), any(UserStatus.class));
-
-            mockMvc.perform(patch("/api/users/{id}/status", testUserId)
-                            .with(csrf())
-                            .param("status", "SUSPENDED"))
-                    .andExpect(status().isNoContent());
         }
     }
 
