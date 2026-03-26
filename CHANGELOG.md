@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.13.1](https://github.com/GnomeShift/TiSk/compare/1.13.0...1.13.1) (2026-03-26)
+
+
+### 🧹 Chores
+
+* **deps:** bump `dompurify` from `3.3.1` to `3.3.3` ([3c57d95](https://github.com/GnomeShift/TiSk/commit/3c57d95954d7088bd6363d122bdde7c122449ad2))
+* **deps:** bump `dompurify` from `3.3.1` to `3.3.3` ([#51](https://github.com/GnomeShift/TiSk/issues/51)) ([dd2a93c](https://github.com/GnomeShift/TiSk/commit/dd2a93c347bb2830546b2917256ccc66135d738c))
+* **deps:** bump `rollup` from `4.55.1` to `4.59.0` ([#50](https://github.com/GnomeShift/TiSk/issues/50)) ([44f190b](https://github.com/GnomeShift/TiSk/commit/44f190b32db0edbd692be850224d7c43d3638f2b))
+* **deps:** bump `trivy-action` from `0.33.1` to `0.35.0` ([4c33a0f](https://github.com/GnomeShift/TiSk/commit/4c33a0f0166440270b6a37439f8182b7c8223ede))
+* **deps:** bump `trivy-action` from `0.33.1` to `0.35.0` ([#53](https://github.com/GnomeShift/TiSk/issues/53)) ([44f4243](https://github.com/GnomeShift/TiSk/commit/44f4243f8e2c257acc48dc3d6db9539a0ee30b74))
+* **deps:** bump rollup ([3bda3bb](https://github.com/GnomeShift/TiSk/commit/3bda3bb0426c9beca06786b9d35e7f23265af86c))
+* **deps:** bump the `mimimatch` from `3.1.2` to `3.1.5`, `flatted` from `3.3.3` to `3.4.2`, `picomatch` from `4.0.3` to `4.0.4` ([#55](https://github.com/GnomeShift/TiSk/issues/55)) ([5edf288](https://github.com/GnomeShift/TiSk/commit/5edf2889f495d7b2be3a30f3ca9b3ba785700be3))
+* **deps:** bump the npm_and_yarn group across 1 directory with 3 updates ([9f7d7be](https://github.com/GnomeShift/TiSk/commit/9f7d7be3f7b8be92f9d6e65656e51b3b2794a055))
+* release ([96c4bfb](https://github.com/GnomeShift/TiSk/commit/96c4bfb3ddd4e6ca37479e746154b7f048341f79))
+* release ([#54](https://github.com/GnomeShift/TiSk/issues/54)) ([96c4bfb](https://github.com/GnomeShift/TiSk/commit/96c4bfb3ddd4e6ca37479e746154b7f048341f79))
+
 ## [1.13.0](https://github.com/GnomeShift/TiSk/compare/1.12.6...1.13.0) (2026-02-16)
 
 
