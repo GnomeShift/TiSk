@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.13.2](https://github.com/GnomeShift/TiSk/compare/1.13.1...1.13.2) (2026-03-27)
+
+
+### ♻️ Refactoring
+
+* **back:** add `actuator` route to `Caddyfile` ([600d49c](https://github.com/GnomeShift/TiSk/commit/600d49c97b002f646c1a6afe88fa0b69cf811dff))
+* **back:** make `actuator` endpoints open ([a3d2167](https://github.com/GnomeShift/TiSk/commit/a3d2167de4ba83d4f3854ce63e847e43124f0a4a))
+* **back:** make `actuator` endpoints open ([#59](https://github.com/GnomeShift/TiSk/issues/59)) ([cabe618](https://github.com/GnomeShift/TiSk/commit/cabe618e927959a66b4adafbf2a9b54f284e6022))
+
+
+### 🧹 Chores
+
+* **deps:** update vulnerable deps ([7d257c5](https://github.com/GnomeShift/TiSk/commit/7d257c5af5cc6b5484bb432f57916e1d3f70eb53))
+* **deps:** update vulnerable deps ([#57](https://github.com/GnomeShift/TiSk/issues/57)) ([292bc57](https://github.com/GnomeShift/TiSk/commit/292bc57c312bc89277c7f42380768502453bbe88))
+* release ([#62](https://github.com/GnomeShift/TiSk/issues/62)) ([a5173d7](https://github.com/GnomeShift/TiSk/commit/a5173d7b74f8dfa8f0e2ccd47a3d09e99cbec558))
+
+
+### 📦 Build
+
+* add namespace ([57de8d2](https://github.com/GnomeShift/TiSk/commit/57de8d282c61a0f0b1a6a0743ac3e272097eab61))
+* add namespace ([#61](https://github.com/GnomeShift/TiSk/issues/61)) ([dcfc45e](https://github.com/GnomeShift/TiSk/commit/dcfc45e94c848fc00ba7b0fcaff618c14c580c0a))
+* **back:** remove `micrometer` version ([2f06001](https://github.com/GnomeShift/TiSk/commit/2f06001bb970c98e988aaec33545c16cbb24a4c3))
+* **back:** remove `micrometer` version ([#58](https://github.com/GnomeShift/TiSk/issues/58)) ([53d73d5](https://github.com/GnomeShift/TiSk/commit/53d73d54b94da75cb814b8fd8f4905060dbd8b5b))
+
 ## [1.13.1](https://github.com/GnomeShift/TiSk/compare/1.13.0...1.13.1) (2026-03-26)
 
 
