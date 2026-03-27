@@ -26,7 +26,7 @@ services:
         max-file: 5
 
   tisk-backend:
-    image: tisk-backend:latest
+    image: gnomeshift/tisk-backend:latest
     container_name: "tisk-backend"
     env_file:
       - .env.production
@@ -49,7 +49,7 @@ services:
         max-file: 5
 
   tisk-frontend:
-    image: tisk-frontend:latest
+    image: gnomeshift/tisk-frontend:latest
     container_name: "tisk-frontend"
     env_file:
       - .env.production
